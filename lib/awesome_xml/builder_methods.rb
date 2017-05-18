@@ -2,7 +2,7 @@
 
 module AwesomeXML
   module BuilderMethods
-    SIMPLE_TYPES = [:text, :integer].freeze
+    SIMPLE_TYPES = [:text, :integer, :float, :duration].freeze
 
     def constant_node(name, value, options = {})
       define_method(name.to_sym) do
@@ -15,40 +15,30 @@ module AwesomeXML
       register(name)
     end
 
-    def text_node(*args, &block)
-      simple_node(:text, *args, &block)
-    end
-
-    def integer_node(*args, &block)
-      simple_node(:integer, *args, &block)
-    end
-
-    def float_node(*args, &block)
-      simple_node(:float, *args, &block)
+    SIMPLE_TYPES.each do |type|
+      define_method("#{type}_node") do |*args, &block|
+        simple_node(type, *args, &block)
+      end
     end
 
     def simple_node(type, name, xpath, options = {}, &block)
+      fail UnknownNodeType.new(type) unless SIMPLE_TYPES.include?(type)
       define_method(name.to_sym) do
-        evaluate_node(xpath, type, &block)
+        evaluate_node(xpath, type, options[:format], &block)
       end
       register(name) unless options[:private]
     end
 
-    def text_array_node(*args, &block)
-      simple_array_node(:text, *args, &block)
-    end
-
-    def integer_array_node(*args, &block)
-      simple_array_node(:integer, *args, &block)
-    end
-
-    def float_array_node(*args, &block)
-      simple_array_node(:float, *args, &block)
+    SIMPLE_TYPES.each do |type|
+      define_method("#{type}_array_node") do |*args, &block|
+        simple_array_node(type, *args, &block)
+      end
     end
 
     def simple_array_node(type, name, xpath, options = {}, &block)
+      fail UnknownNodeType.new(type) unless SIMPLE_TYPES.include?(type)
       define_method(name.to_sym) do
-        evaluate_nodes(xpath, type, &block)
+        evaluate_nodes(xpath, type, options[:format], &block)
       end
       register(name) unless options[:private]
     end
@@ -71,14 +61,17 @@ module AwesomeXML
       @nodes ||= []
     end
 
-    def parse_type(string, type)
+    def parse_type(string, type, format)
+      return unless string.present?
       case type
       when :text
         string
       when :integer
-        string.to_i if string.present?
+        string.to_i
       when :float
-        string.to_f if string.present?
+        string.to_f
+      when :duration
+        AwesomeXML::Duration::Parser.new(string, format).duration
       end
     end
 
@@ -87,6 +80,12 @@ module AwesomeXML
     def register(node_name)
       @nodes ||= []
       @nodes << node_name.to_sym
+    end
+
+    class UnknownNodeType < StandardError
+      def initialize(type)
+        super("Cannot create node with unknown node type '#{type}'.")
+      end
     end
   end
 end

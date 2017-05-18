@@ -1,12 +1,21 @@
 # frozen_string_literal: true
 
-module AwesomeXML
-end
+FILES = %w(
+  node
+  root
+  child
+  builder_methods
+  duration
+  duration/chunk_parser
+  duration/format
+  duration/parser
+  duration/format/dynamic_chunk
+  duration/format/static_chunk
+).freeze
 
-require File.expand_path("../awesome_xml/node.rb", __FILE__)
-require File.expand_path("../awesome_xml/root.rb", __FILE__)
-require File.expand_path("../awesome_xml/child.rb", __FILE__)
-require File.expand_path("../awesome_xml/builder_methods.rb", __FILE__)
+FILES.each do |file|
+  require File.expand_path("../awesome_xml/#{file}.rb", __FILE__)
+end
 
 require 'nokogiri'
 require 'active_support/all'

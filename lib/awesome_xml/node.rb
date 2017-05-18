@@ -8,28 +8,28 @@ module AwesomeXML
 
   private
 
-    def evaluate_node(xpath, type = :string, &block)
+    def evaluate_node(xpath, type = :string, format = nil, &block)
       if block_given?
-        yield(evaluate_node_blockless(xpath, type), self)
+        yield(evaluate_node_blockless(xpath, type, format), self)
       else
-        evaluate_node_blockless(xpath, type)
+        evaluate_node_blockless(xpath, type, format)
       end
     end
 
-    def evaluate_node_blockless(xpath, type)
-      self.class.parse_type(find_node(xpath)&.text, type)
+    def evaluate_node_blockless(xpath, type, format)
+      self.class.parse_type(find_node(xpath)&.text, type, format)
     end
 
-    def evaluate_nodes(xpath, type = :string, &block)
+    def evaluate_nodes(xpath, type = :string, format = nil, &block)
       if block_given?
-        yield(evaluate_nodes_blockless(xpath, type), self)
+        yield(evaluate_nodes_blockless(xpath, type, format), self)
       else
-        evaluate_nodes_blockless(xpath, type)
+        evaluate_nodes_blockless(xpath, type, format)
       end
     end
 
-    def evaluate_nodes_blockless(xpath, type = :string)
-      find_nodes(xpath)&.map { |node| self.class.parse_type(node&.text, type) }
+    def evaluate_nodes_blockless(xpath, type, format)
+      find_nodes(xpath)&.map { |node| self.class.parse_type(node&.text, type, format) }
     end
 
     def find_node(xpath)
