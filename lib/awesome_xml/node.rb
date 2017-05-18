@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
+# `AwesomeXML::Root` and `AwesomeXML::Child` both include this module of general
+# node related methods.
 module AwesomeXML
   module Node
+    # Returns a `Hash` with all node names and values, structured according to your setup.
     def to_hash
       Hash[self.class.nodes.map { |node| [node, public_send(node)] }]
     end

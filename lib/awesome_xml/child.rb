@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Include this module in any class that is set up to support a child node.
 module AwesomeXML
   module Child
     include AwesomeXML::Node

@@ -1,13 +1,19 @@
 # frozen_string_literal: true
 
+# A class that lets you parse a string according to the rules of a
+# specified duration format chunk.
 module AwesomeXML
   class Duration
     class ChunkParser
-      attr_reader :timestamp_chunk, :format_chunk, :duration
-      private :timestamp_chunk, :format_chunk
+      attr_reader :duration_string_chunk, :format_chunk, :duration
+      private :duration_string_chunk, :format_chunk
 
-      def initialize(timestamp_chunk, format_chunk)
-        @timestamp_chunk = timestamp_chunk
+      # Parses a string given as `duration_string_chunk` according to the rules of the passed in
+      # `format_chunk`. The latter being either a `AwesomeXML::Duration::Format::StaticChunk`
+      # or a `AwesomeXML::Duration::Format::DynamicChunk`. Saves the resulting `AwesomeXML::Duration`
+      # object in the attribute `duration`.
+      def initialize(duration_string_chunk, format_chunk)
+        @duration_string_chunk = duration_string_chunk
         @format_chunk = format_chunk
         parse
       end
@@ -18,27 +24,27 @@ module AwesomeXML
         if format_chunk.dynamic?
           @duration = AwesomeXML::Duration.new(format_chunk.unit => number)
         else
-          fail format_mismatch unless timestamp_chunk == format_chunk.to_s
+          fail format_mismatch unless duration_string_chunk == format_chunk.to_s
           @duration = AwesomeXML::Duration.new
         end
       end
 
       def number
         fail format_mismatch unless valid_number?
-        timestamp_chunk.to_i
+        duration_string_chunk.to_i
       end
 
       def valid_number?
-        timestamp_chunk =~ /^[0-9]*$/
+        duration_string_chunk =~ /^[0-9]*$/
       end
 
       def format_mismatch
-        FormatMismatch.new(timestamp_chunk, format_chunk.to_s)
+        FormatMismatch.new(duration_string_chunk, format_chunk.to_s)
       end
 
       class FormatMismatch < StandardError
         def initialize(timestamp, format_string)
-          super("Timestamp '#{timestamp}' does not conform to given format '#{format_string}'.")
+          super("Duration string '#{timestamp}' does not conform to given format '#{format_string}'.")
         end
       end
     end

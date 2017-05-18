@@ -175,7 +175,7 @@ Fret no more, just use `.simple_array_node(type, name, xpath)`:
 class MyDocument < Struct.new(:data)
   include AwesomeXML::Root
 
-  simple_array_node :integer, :item_references, 'document/item'
+  simple_array_node :integer, :item_references, 'document/item/@ref'
 end
 ```
 

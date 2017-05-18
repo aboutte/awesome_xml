@@ -1,15 +1,12 @@
 # frozen_string_literal: true
 
+# Include this module in your top class holding nodes.
 module AwesomeXML
   module Root
     include AwesomeXML::Node
 
     def self.included(base)
       base.extend(AwesomeXML::BuilderMethods)
-    end
-
-    def to_hash
-      Hash[self.class.nodes.map { |node| [node, public_send(node)] }]
     end
 
   private
