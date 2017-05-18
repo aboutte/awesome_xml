@@ -34,7 +34,7 @@ Let's say you have this XML document and you want to parse the contents of the `
 `AwesomeXML::Root` defines class methods on your class that correspond to types of nodes. One of the simplest is the `.simple_node`.
 It takes in
   - a symbol, which will be the name of your node.
-  - the type which the parser will assume the parsed value has (currently supported are `:text`, `:integer`,  and `:float`).
+  - the type which the parser will assume the parsed value has (currently supported are `:text`, `:integer`, `:float`, and `:duration`).
   - an `XPath` to the node you want to evaluate. If you pass in an `XPath` that returns a `NodeSet` instead of a
     single node, only the first one is evaluated.
 
@@ -349,13 +349,35 @@ end
 
 Both are perfectly acceptable. They even have the same amount of lines.
 
+## More node types
+
+Let's talk about duration nodes. As you may remember, `:duration` is an accepted type for `.simple_node`.
+They return `ActiveSupport::Duration` objects, which interact freely with each other and with `Time` and
+`DateTime` objects.
+The special thing about them is that they take a *mandatory* `:format` option. There, you can specify the
+format in which the duration you want to parse is available. The format is given in the form of a duration
+format string with an easy syntax. Basically, you emulate the format of the given duration string and
+replace the numbers with instructions how to treat them. The syntax is `"{#{unit}#{parse_length}}"`.
+The `unit` can be one of `D`, `H`, `M`, or `S`, representing days, hours, minutes, and seconds.
+The `parse_length` tells the parser how many digits to look for, and can be any integer.
+
+For example, let's say you want to parse a duration string that looks like `'1234'`, where the first two
+digits stand for minutes and the last two for seconds. To parse this correctly, use the format string
+`'{M2}{S2}'`. Easy enough.
+
+What, though, if the number of digits vary? Maybe your duration string sometimes looks like `'12m34'`,
+but when the numbers are single digit, it looks like `'2m1'`. In this case, just don't specify a
+`parse_length`. Everything up to the following character (or the end of the duration string) will be
+treated as going into the parsed value. The format string that would parse you the correct duration
+would be `'{M}m{S}'`.
+
 ## Summary of node types
 
 - `.constant_node(name, value, options = {})` - defines a method that returns a constant value you specify.
 - `.method_node(name, options = {})` - adds the specified name to the node registry.
 - `.simple_node(type, name, xpath, options = {}, &block)` - defines a method that evaluates the `XPath` specified node
-  and casts it as the specified type. Possible types are `:text`, `:integer`, `:float`. Also available as
-  `.text_node`, `.integer_node`, `.float_node`.
+  and casts it as the specified type. Possible types are `:text`, `:integer`, `:float`, `:duration`. Also available as
+  `.text_node`, `.integer_node`, `.float_node`, `.duration_node`.
 - `.child_node(name, node_class_name, new_current_node, options = {}, &block)` - defines a method that initializes an
   instance of the specified `AwesomeXML::Child` class. `XPath`s in that class are evaluated in the context
   of the new current node.

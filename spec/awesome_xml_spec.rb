@@ -95,6 +95,66 @@ RSpec.describe AwesomeXML do
     end
   end
 
+  describe '#float_node' do
+    subject { root.new(data).float_node_name }
+
+    let(:data) { "<Some><Thing abc='321.0'/><Thing abc='123.4'/></Some>" }
+
+    context 'when not passing a block' do
+      let(:root) { RootWithFloatNode }
+
+      class RootWithFloatNode < Struct.new(:data)
+        include AwesomeXML::Root
+
+        float_node :float_node_name, '//Thing/@abc'
+      end
+
+      it { is_expected.to eq 321.0 }
+    end
+
+    context 'when passing a block' do
+      let(:root) { RootWithFloatNodeAndBlock }
+
+      class RootWithFloatNodeAndBlock < Struct.new(:data)
+        include AwesomeXML::Root
+
+        float_node(:float_node_name, '//Thing/@abc') { |node| node * 100 }
+      end
+
+      it('yields the result to the block') { is_expected.to eq 32_100.0 }
+    end
+  end
+
+  describe '#duration_node' do
+    subject { root.new(data).duration_node_name }
+
+    let(:data) { "<Some><Time abc='23.59'/></Some>" }
+
+    context 'when not passing a block' do
+      let(:root) { RootWithDurationNode }
+
+      class RootWithDurationNode < Struct.new(:data)
+        include AwesomeXML::Root
+
+        duration_node :duration_node_name, '//Time/@abc', format: '{H}.{M}'
+      end
+
+      it { is_expected.to eq 23.hours + 59.minutes }
+    end
+
+    context 'when passing a block' do
+      let(:root) { RootWithDurationNodeAndBlock }
+
+      class RootWithDurationNodeAndBlock < Struct.new(:data)
+        include AwesomeXML::Root
+
+        duration_node(:duration_node_name, '//Time/@abc', format: '{H}.{M}') { |node| node + 1.minute }
+      end
+
+      it('yields the result to the block') { is_expected.to eq 24.hours }
+    end
+  end
+
   describe '#simple_node' do
     subject { root.new(data).simple_node_name }
 
@@ -123,14 +183,26 @@ RSpec.describe AwesomeXML do
 
       it('yields the result to the block') { is_expected.to eq 32_100 }
     end
+
+    context 'when passing an unknown type' do
+      subject do
+        class RootWithInvalidNode
+          include AwesomeXML::Root
+
+          simple_node(:abcdef, 'adfbd', 'adfvadf')
+        end
+      end
+
+      specify { expect { subject }.to raise_error(AwesomeXML::BuilderMethods::UnknownNodeType) }
+    end
   end
 
   describe '#text_array_node' do
     subject { root.new(data).things }
 
     let(:data) do
-      "<Doc><Some times='10'><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore times='100'><Thing abc='987'/></SomeMore></Doc>"
+      "<Doc><Some><Thing abc='321'/><Thing abc='123'/></Some>\
+      <SomeMore><Thing abc='987'/></SomeMore></Doc>"
     end
 
     context 'when not passing a block' do
@@ -162,8 +234,8 @@ RSpec.describe AwesomeXML do
     subject { root.new(data).things }
 
     let(:data) do
-      "<Doc><Some times='10'><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore times='100'><Thing abc='987'/></SomeMore></Doc>"
+      "<Doc><Some><Thing abc='321'/><Thing abc='123'/></Some>\
+      <SomeMore><Thing abc='987'/></SomeMore></Doc>"
     end
 
     context 'when not passing a block' do
@@ -195,8 +267,8 @@ RSpec.describe AwesomeXML do
     subject { root.new(data).things }
 
     let(:data) do
-      "<Doc><Some times='10'><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore times='100'><Thing abc='987'/></SomeMore></Doc>"
+      "<Doc><Some><Thing abc='321'/><Thing abc='123'/></Some>\
+      <SomeMore><Thing abc='987'/></SomeMore></Doc>"
     end
 
     context 'when not passing a block' do
@@ -221,6 +293,39 @@ RSpec.describe AwesomeXML do
       end
 
       it('yields the result to the block') { is_expected.to eq([987.0, 123.0, 321.0]) }
+    end
+  end
+
+  describe '#duration_array_node' do
+    subject { root.new(data).times }
+
+    let(:data) do
+      "<Doc><Some><Time abc='1:60'/><Time abc='45:0'/></Some>\
+      <SomeMore><Time abc='987:654'/></SomeMore></Doc>"
+    end
+
+    context 'when not passing a block' do
+      let(:root) { RootWithDurationArrayNode }
+
+      class RootWithDurationArrayNode < Struct.new(:data)
+        include AwesomeXML::Root
+
+        duration_array_node :times, "//Time/@abc", format: '{H}:{M}'
+      end
+
+      it { is_expected.to eq([2.hours, 45.hours, 987.hours + 654.minutes]) }
+    end
+
+    context 'when passing a block' do
+      let(:root) { RootWithDurationArrayNodeAndBlock }
+
+      class RootWithDurationArrayNodeAndBlock < Struct.new(:data)
+        include AwesomeXML::Root
+
+        duration_array_node(:times, "//Time/@abc", format: '{H}:{M}') { |node| node.reverse }
+      end
+
+      it('yields the result to the block') { is_expected.to eq([987.hours + 654.minutes, 45.hours, 2.hours]) }
     end
   end
 
@@ -254,6 +359,18 @@ RSpec.describe AwesomeXML do
       end
 
       it('yields the result to the block') { is_expected.to eq([987, 123, 321]) }
+    end
+
+    context 'when passing an unknown type' do
+      subject do
+        class RootWithInvalidArrayNode
+          include AwesomeXML::Root
+
+          simple_array_node(:abcdef, 'adfbd', 'adfvadf')
+        end
+      end
+
+      specify { expect { subject }.to raise_error(AwesomeXML::BuilderMethods::UnknownNodeType) }
     end
   end
 
@@ -376,9 +493,10 @@ RSpec.describe AwesomeXML do
   end
 
   describe '.parse_type' do
-    subject { root.parse_type(string, type) }
+    subject { root.parse_type(string, type, format) }
 
     let(:root) { MinimalRoot }
+    let(:format) { nil }
 
     class MinimalRoot < Struct.new(:data)
       include AwesomeXML::Root
@@ -421,6 +539,26 @@ RSpec.describe AwesomeXML do
       let(:string) { '15.5' }
 
       it { is_expected.to eq 15.5 }
+
+      context 'when string is nil' do
+        let(:string) { nil }
+
+        it { is_expected.to eq nil }
+      end
+
+      context 'when string is empty' do
+        let(:string) { '' }
+
+        it { is_expected.to eq nil }
+      end
+    end
+
+    context 'parsing a duration' do
+      let(:type) { :duration }
+      let(:string) { '12m34' }
+      let(:format) { '{M}m{S}' }
+
+      it { is_expected.to eq 12.minutes + 34.seconds }
 
       context 'when string is nil' do
         let(:string) { nil }

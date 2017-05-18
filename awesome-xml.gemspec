@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.licenses = %w(MIT)
 
-  spec.files = Dir['lib/kenny/**/*.rb',
+  spec.files = Dir['lib/awesome_xml/**/*.rb',
                    'Gemfile',
                    'LICENSE',
                    'Rakefile',
