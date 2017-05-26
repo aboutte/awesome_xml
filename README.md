@@ -69,7 +69,7 @@ class MyDocument
 end
 ```
 
-If you don't pass an XPath (like in the very first example), the default is assumed, which is `"./#{name_of_you_node}".
+If you don't pass an XPath (like in the very first example), the default is assumed, which is `"./#{name_of_you_node}"`.
 Or, if you don't want to set the context node for the whole class, you can use `.with_context`, which takes a block:
 
 ```ruby
@@ -304,7 +304,9 @@ class MyDocument
   include AwesomeXML
 
   set_context 'document'
-  node(:items, :integer, array: true, xpath: './item/@index') { |values| values.map { |value| value - 1 } }
+  node(:items, :integer, array: true, xpath: './item/@index') do |values|
+    values.map { |value| value - 1 }
+  end
 end
 
 my_document.to_hash
@@ -328,7 +330,7 @@ Your XML data:
 </document>
 ```
 
-Your AwesomeXML class:
+Your `AwesomeXML` class:
 
 ```ruby
 class MyDocument
@@ -504,16 +506,3 @@ but when the numbers are single digit, it looks like `'2m1'`. In this case, just
 `parse_length`. Everything up to the following character (or the end of the duration string) will be
 treated as going into the parsed value. The format string that would parse you the correct duration
 would be `'{M}m{S}'`.
-
-## Summary of node types
-
-- `.constant_node(name, value, options = {})` - defines a method that returns a constant value you specify.
-- `.method_node(name, options = {})` - adds the specified name to the node registry.
-- `.simple_node(type, name, xpath, options = {}, &block)` - defines a method that evaluates the `XPath` specified node
-  and casts it as the specified type. Possible types are `:text`, `:integer`, `:float`, `:duration`. Also available as
-  `.text_node`, `.integer_node`, `.float_node`, `.duration_node`.
-- `.child_node(name, node_class_name, new_current_node, options = {}, &block)` - defines a method that initializes an
-  instance of the specified `AwesomeXML` class. `XPath`s in that class are evaluated in the context
-  of the new current node.
-- `.simple_array_node` and `.child_array_node` - work like their non-`array` counterparts, except they evaluate
-  each node passed in through the `xpath` argument and return it as an array.
