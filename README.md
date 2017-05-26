@@ -42,7 +42,7 @@ Its arguments are
   - an options hash (optional)
 
 The type can either be a native type given in the form of a symbol (currently supported are `:text`,
-`:integer`, `:float`, and `:duration`), or a custom class. You can also pass in a string containing
+`:integer`, `:float`, `:duration` and `:date_time`), or a custom class. You can also pass in a string containing
 a class name in case the class constant is not yet defined at the time you run the `.node` method.
 More about that later.
 

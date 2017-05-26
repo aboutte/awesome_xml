@@ -8,6 +8,7 @@ FILES = %w(
   types/integer
   types/float
   types/duration
+  types/date_time
   type
   class_methods
   duration/chunk_parser
