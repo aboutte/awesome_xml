@@ -1,29 +1,32 @@
 # AwesomeXML
 
-AwesomeXML is a library that lets your Ruby classes parse arbitrary data from XML documents into a hash.
-The hash can be structured completely freely. The parsing itself is based on [Nokogiri](https://github.com/sparklemotion/nokogiri). The concept was
-inspired by [xml-mapping](https://github.com/multi-io/xml-mapping).
+AwesomeXML is an XML mapping library that lets your Ruby classes parse arbitrary data from XML documents into a hash.
+The hash can be structured completely freely. The parsing itself is based on [Nokogiri](https://github.com/sparklemotion/nokogiri).
+The concept is very similar to that of [happymapper](https://github.com/dam5s/happymapper).
 
 ## Include it
 
-Include `AwesomeXML::Root` in any class you want to hold the root node of your XML document.
-Make sure that the document itself is stored in an attribute `data`. Like this:
+Include `AwesomeXML` in any class you want to have all the capabilities this gem provides to you.
 
 ```ruby
-class MyRoot
-  include AwesomeXML::Root
-
-  attr_reader :data
-
-  def intitalize(data)
-    @data = data
-  end
+class MyDocument
+  include AwesomeXML
 end
+```
+
+## Feed it
+
+Your class will now have a `.parse` class method which takes in a single argument containing a string
+representing an XML document. It returns an instance of your class. Like this:
+
+```ruby
+my_document = MyDocument.parse('<document><title>This is a document.</title></document>')
+=> #<MyDocument:0x007fc57d239520 @xml=#<Nokogiri::XML::Document:0x3fe2be91ca54 name="document" children=[#<Nokogiri::XML::Element:0x3fe2be91c70c name="document" children=[#<Nokogiri::XML::Element:0x3fe2be91c52c name="title" children=[#<Nokogiri::XML::Text:0x3fe2be91c34c "This is a document.">]>]>]>, @parent_node=nil>
 ```
 
 ## Create your first awesome node
 
-Let's say you have this XML document and you want to parse the contents of the `<title></title>` node.
+Let's say you have this XML document and you want to parse the content of the `<title></title>` tag.
 
 ```xml
 <document>
@@ -31,45 +34,111 @@ Let's say you have this XML document and you want to parse the contents of the `
 </document>
 ```
 
-`AwesomeXML::Root` defines class methods on your class that correspond to types of nodes. One of the simplest is the `.simple_node`.
-It takes in
+The `AwesomeXML` module defines several class methods on your class that that help you with that.
+The most basic one is the `.node` method.
+Its arguments are
   - a symbol, which will be the name of your node.
-  - the type which the parser will assume the parsed value has (currently supported are `:text`, `:integer`, `:float`, and `:duration`).
-  - an `XPath` to the node you want to evaluate. If you pass in an `XPath` that returns a `NodeSet` instead of a
-    single node, only the first one is evaluated.
+  - the type which the parser will assume the parsed value has
+  - an options hash (optional)
 
-This is how you do it:
+The type can either be a native type given in the form of a symbol (currently supported are `:text`,
+`:integer`, `:float`, and `:duration`), or a custom class. You can also pass in a string containing
+a class name in case the class constant is not yet defined at the time you run the `.node` method.
+More about that later.
+
+Let's try it!
 
 ```ruby
-class MyDocument < Struct.new(:data) # don't do this in real life, but it'll keep this tutorial shorter
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  simple_node :text, :title, '//title'
+  set_context 'document'
+  node :title, :text
 end
 ```
 
-This then gives you access to the following method:
+Notice we needed to set a context node `'document'` so the `title` node could be found. `.set_context` takes an XPath
+and sets the current node for the whole class. There's a few other ways you can achievement the same thing as above.
+For example by passing in an explicit XPath.
 
 ```ruby
-my_document = MyDocument.new("<document><title>This is a document.</title></document>")
-=> #<struct MyDocument data="<document><title>This is a document.</title></document>">
+class MyDocument
+  include AwesomeXML
 
+  node :title, :text, xpath: 'document/title'
+end
+```
+
+If you don't pass an XPath (like in the very first example), the default is assumed, which is `"./#{name_of_you_node}".
+Or, if you don't want to set the context node for the whole class, you can use `.with_context`, which takes a block:
+
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  with_context 'document' do
+    node :title, :text
+  end
+end
+```
+
+All of these make a few things possible. Firstly, after calling `MyDocument.parse(xml_string)`, you can access
+an attribute reader method with the name of your node (`title`). It contains the value parsed from your XML document.
+
+```ruby
 my_document.title
 => "This is a document."
 ```
 
-Instead of using `.simple_node(type, name, xpath)`, you can also use the predefined `.text_node(name, xpath)`,
-`.integer_node(name, xpath)`, and so on.
+Secondly, it changes the result of the `#to_hash` method of your class. More about that later.
+
+## Accessing content of the current node
+
+This is another way of achieving the same thing as above:
+
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  set_context 'document/title'
+  node :title, :text, tag_type: :value
+end
+```
+
+The option `tag_type: :value` tells the parser not to look in the child nodes but in the current node itself.
+It has the same effect as passing the explicit XPath `'.'`.
+
+## Accessing attributes
+
+Let's say your XML document has important data hidden in the attributes of tags:
+
+```xml
+<document title='This is a document.'/>
+```
+
+One way to do it is to pass the option `tag_type: :attribute` to your node:
+
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  set_context 'document'
+  node :title, :text, tag_type: :attribute
+end
+```
+
+This is the same as passing an explicit XPath `"./@#{name_of_you_node}"`.
 
 ## Method nodes
 
 If you want, you can define your node in a method. Like this:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  simple_node :text, :title, '//title'
+  set_context 'document'
+  node :title, :text
   method_node :reversed_title
 
   def reversed_title
@@ -84,15 +153,12 @@ the following awesome method that is provided to you:
 
 ## `#to_hash`
 
-Including `AwesomeXML::Root` will define the method `#to_hash` on your class. It traverses all the nodes
+Including `AwesomeXML` will define the method `#to_hash` on your class. It traverses all the nodes
 you defined in your class (including the ones declared with `.method_node`) and returns values in a hash
 that follows the structure you defined. Let's take the example from the section above. Then, `#to_hash`
 would do the following:
 
 ```ruby
-my_document = MyDocument.new("<document><title>This is a document.</title></document>")
-=> #<struct MyDocument data="<document><title>This is a document.</title></document>">
-
 my_document.to_hash
 => {:title=>"This is a document.", :reversed_title=>".tnemucod a si sihT"}
 ```
@@ -116,40 +182,51 @@ If you want your parsed hash to look like this:
 ```ruby
 { title: "This is a document.", item: { reference: 123, owner: 'John Doe' } }
 ```
-you can do that with `.child_node(name, child_node_class_name, new_current_node)`:
+You can do that by creating a node of the type of another class that also includes `AwesomeXML`.
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  simple_node :text, :title, '//title'
-  child_node :item, 'Item', 'document/item'
+  set_context 'document'
+  node :title, :text
+  node :item, 'Item'
 
   class Item
-    include AwesomeXML::Child
+    include AwesomeXML
 
-    integer_node :reference, '@ref'
-    text_node :owner, '/owner'
+    node :reference, :integer, tag_type: :attribute, look_for: 'ref'
+    node :owner, :text
   end
 end
 ```
 
-Let me explain what's going on here.
+Easy! As you see, you can pass in the option `:look_for` with a string that will then be used to
+build the XPath to your node, instead of using the node name. Use this whenever you want your nodes
+to be named differently than in the XML document.
 
-First, you declare that your root has a child node, whose nodes you'll define in turn in the class
-`MyDocument::Item`. You have to pass in the class' name and not the class. The namespace `MyDocument::`
-for the new class is added automatically.
+Also, you might have noticed that the context node for the `Item` class is automatically set. So need
+to call `.set_context` except you want a different context, of course.
 
-The third argument to the `.child_node` method is an `XPath` to the node that gets passed into the
-initializer of the `MyDocument::Item` class. That will be the new current node in which context the `XPath`s of
-its own nodes will be evaluated. That way you can write just `'@ref'` instead of `'document/item/@ref'`.
-If you don't want to change the current node for the subclass, just pass in `'.'`.
+If you want, you can also pass in the class itself instead of a string with the class name.
+Just make sure that it is defined before you use it in your `.node` method! Like this:
 
-Then, you need to include the `AwesomeXML::Child` module in your child node class. This gives you all the magic
-you get from `AwesomeXML::Root`, but also some extra stuff. E.g., you don't have to define `#initialize` anymore.
-`.child_node` also passes in the instance of its class in which its defined method was called, and you can access it
-in the child class with `#parent_node`.
-You'll see more about that later.
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  class Item
+    include AwesomeXML
+
+    node :reference, :integer, tag_type: :attribute, look_for: 'ref'
+    node :owner, :text
+  end
+
+  set_context 'document'
+  node :title, :text
+  node :item, Item
+end
+```
 
 ## Array Nodes
 
@@ -166,40 +243,40 @@ What if you have more than one `<item/>`? Say your XML document looks like this:
 And you want your parsed hash to look like this:
 
 ```ruby
-{ title: "This is a document.", item_references: [123, 456, 789] }
+{ refs: [123, 456, 789] }
 ```
 
-Fret no more, just use `.simple_array_node(type, name, xpath)`:
+Fret no more, just use the option `array: true`:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  simple_array_node :integer, :item_references, 'document/item/@ref'
+  set_context 'document/item'
+  node :refs, :integer, tag_type: :attribute, array: true
 end
 ```
 
-Pretty self-explanatory, right? Needless to say, you can also use `text_array_node`, `integer_array_node`,
-etc., if you think that looks tidier (I do).
+Pretty self-explanatory, right? `AwesomeXML` even singularizes your node name automatically!
 
 Okay, you say, that's a very simple array, indeed. What if I want an array of hashes? Like so:
 ```ruby
-{ title: "This is a document.", items: [{ reference: 123 }, { reference: 456 }, { reference: 789 }] }
+{ items: [{ ref: 123 }, { ref: 456 }, { ref: 789 }] }
 ```
 
-Well, I've got a method for you: `.child_array_node(name, child_node_class_name, new_current_node)`. It works
-just like `.child_node`:
+Just combine the two things we last learned:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  child_array_node :item, 'Item', 'document/item'
+  set_context 'document'
+  node :items, 'Item', array: true
 
   class Item
-    include AwesomeXML::Child
+    include AwesomeXML
 
-    integer_node :reference, '@ref'
+    node :ref, :integer, tag_type: :attribute
   end
 end
 ```
@@ -223,10 +300,11 @@ do pretty much anything you want. Let's say you don't like the way the items are
 Yuck. Let's fix that:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  integer_array_node(:items, 'document/item/@index') { |values| values.map { |value| value - 1 } }
+  set_context 'document'
+  node(:items, :integer, array: true, xpath: './item/@index') { |values| values.map { |value| value - 1 } }
 end
 
 my_document.to_hash
@@ -234,7 +312,7 @@ my_document.to_hash
 
 ```
 
-That's better. Note that `*_array_nodes` yield the whole array to the block and not an `Enumerator`.
+That's better. Note that array nodes yield the whole array to the block and not an `Enumerator`.
 
 There's another twist to this block passing, though. AwesomeXML also yields the instance of your class
 to the block so you can actually access other nodes inside the block! Let's see it in action.
@@ -242,7 +320,7 @@ to the block so you can actually access other nodes inside the block! Let's see 
 Your XML data:
 ```xml
 <document>
-  <items multiply-with='100'>
+  <items multiplicator='100'>
     <item value='1'/>
     <item value='2'/>
     <item value='3'/>
@@ -253,53 +331,51 @@ Your XML data:
 Your AwesomeXML class:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  integer_node :multiply_with, 'document/items/@multiply-with'
-  integer_array_node(:item_values, 'document/items/item/@value') do |values, instance|
-    values.map { |value| value * instance.multiply_with }
+  set_context 'document/items'
+  node :multiplicator, :integer, tag_type: :attribute
+  node(:item_values, :integer, array: :true, xpath: './item/@value') do |values, instance|
+    values.map { |value| value * instance.multiplicator }
   end
 end
 
 my_document.to_hash
-=> {:multiply_with=>100, :item_values=>[100, 200, 300]}
+=> {:multiplicator=>100, :item_values=>[100, 200, 300]}
 ```
 
+## Overwriting attribute readers
 
-## `:private` option
+You can achieve the same effect as passing blocks by redefining the attribute accessors that `AwesomeXML`
+usually defines for you. Arguably, this is the more elegant method, although you might prefer the block
+syntax's brevity for more simple operations.
 
-To all `*_node` methods (except `.method_node`, since it doesn't really make sense there), you can always pass
-in an options hash as the last argument. Currently, there's only one option being supported, called `private`.
-The default is `false`. What it does is remove your node from the ones being evaluated in `#to_hash`. This is
-helpful if you want to parse something that is not meant to end up in the parsed schema. Let's take the example
-from above and remove the `multiply_with` from your parsed hash. Like so:
+Let's see how the example from above would look in this style:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  integer_node :multiply_with, 'document/items/@multiply-with', private: true
-  integer_array_node(:item_values, 'document/items/item/@value') do |values, instance|
-    values.map { |value| value * instance.multiply_with }
+  set_context 'document/items'
+  node :multiplicator, :integer, tag_type: :attribute
+  node :item_values, :integer, array: :true, xpath: './item/@value'
+
+  def item_values
+    @item_values.map { |value| value * multiplicator }
   end
 end
-
-my_document.to_hash
-=> {:item_values=>[100, 200, 300]}
 ```
-
-Awesome.
 
 ## `#parent_node`
 
-This method is available on all class instances including the `AwesomeXML::Child` modules. It returns the
-instance of the class instance it was instantiated from. Let's see how that can be useful. Let's again use
+This method is available on all class instances including the `AwesomeXML` module. It returns the
+instance of the class it was initialized from. Let's see how that can be useful. Let's again use
 the XML document from the above two examples.
 
 ```xml
 <document>
-  <items multiply-with='100'>
+  <items multiplicator='100'>
     <item value='1'/>
     <item value='2'/>
     <item value='3'/>
@@ -313,19 +389,24 @@ my_document.to_hash
 => {:items=>[{:value=>100}, {:value=>200}, {:value=>300}]}
 ```
 
-There's (at least) two ways to do this. You can either define the `multiply_with` node on your child class:
+There's (at least) two ways to do this. You can either define the `multiplicator` node on your child class:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  child_array_node :items, 'Item', 'document/items/item'
+  set_context 'document/items'
+  node :items, 'Item', array: true
 
   class Item
-    include AwesomeXML::Child
+    include AwesomeXML
 
-    integer_node :multiply_with, '../@multiply-with', private: true
-    integer_node(:value, '@value') { |value, instance| value * instance.multiply_with }
+    node :multiplicator, :integer, xpath: '../@multiplicator', private: true
+    node :value, :integer, tag_type: :attribute
+
+    def value
+      @value * multiplicator
+    end
   end
 end
 ```
@@ -333,32 +414,85 @@ end
 Or, alternatively, you can use `#parent_node`:
 
 ```ruby
-class MyDocument < Struct.new(:data)
-  include AwesomeXML::Root
+class MyDocument
+  include AwesomeXML
 
-  integer_node :multiply_with, 'document/items/@multiply-with', private: true
-  child_array_node :items, 'Item', 'document/items/item'
+  set_context 'document/items'
+  node :multiplicator, :integer, tag_type: :attribute, private: true
+  node :items, 'Item', array: true
 
   class Item
-    include AwesomeXML::Child
+    include AwesomeXML
 
-    integer_node(:value, '@value') { |value, instance| value * instance.parent_node.multiply_with }
+    node :value, :integer, tag_type: :attribute
+
+    def value
+      @value * parent_node.multiplicator
+    end
   end
 end
 ```
 
-Both are perfectly acceptable. They even have the same amount of lines.
+Both are perfectly acceptable. The latter is slightly more efficient because the `multiplicator` node
+will only be parsed once instead of once per `item`. You may have noticed that we used a new option:
+`:private`. I'll explain it in the next section.
+
+## More options
+
+### `:private`
+
+The `:private` option removes your node from the ones being evaluated in `#to_hash`. This is
+helpful if you want to parse something that is not meant to end up in the parsed schema. Let's revisit the example
+from above.
+
+```xml
+<document>
+  <items multiplicator='100'>
+    <item value='1'/>
+    <item value='2'/>
+    <item value='3'/>
+  </items>
+</document>
+```
+
+Now let's try and remove the `multiplicator` from your parsed hash. Like so:
+
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  set_context 'document/items'
+  node :multiplicator, :integer, tag_type: :attribute, private: true
+  node :item_values, :integer, array: :true, xpath: './item/@value'
+
+  def item_values
+    @item_values.map { |value| value * multiplicator }
+  end
+end
+```
+
+```ruby
+my_document.to_hash
+=> {:item_values=>[100, 200, 300]}
+```
+
+Awesome.
+
+### `:default` and `:default_empty`
+
+Using these options, you can control what happens in case the tag or attribute you wanted to parse is empty
+or doesn't even exist. For the former, use `:default_empty`, for the latter, use `:default`.
 
 ## More node types
 
-Let's talk about duration nodes. As you may remember, `:duration` is an accepted type for `.simple_node`.
+Let's talk about duration nodes. As you may remember, `:duration` is of the native types for `.node`.
 They return `ActiveSupport::Duration` objects, which interact freely with each other and with `Time` and
 `DateTime` objects.
 The special thing about them is that they take a *mandatory* `:format` option. There, you can specify the
 format in which the duration you want to parse is available. The format is given in the form of a duration
 format string with an easy syntax. Basically, you emulate the format of the given duration string and
 replace the numbers with instructions how to treat them. The syntax is `"{#{unit}#{parse_length}}"`.
-The `unit` can be one of `D`, `H`, `M`, or `S`, representing days, hours, minutes, and seconds.
+The `unit` can be one of `D`, `H`, `M`, or `S` (or their lowercase variants), representing days, hours, minutes, and seconds.
 The `parse_length` tells the parser how many digits to look for, and can be any integer.
 
 For example, let's say you want to parse a duration string that looks like `'1234'`, where the first two
@@ -379,7 +513,7 @@ would be `'{M}m{S}'`.
   and casts it as the specified type. Possible types are `:text`, `:integer`, `:float`, `:duration`. Also available as
   `.text_node`, `.integer_node`, `.float_node`, `.duration_node`.
 - `.child_node(name, node_class_name, new_current_node, options = {}, &block)` - defines a method that initializes an
-  instance of the specified `AwesomeXML::Child` class. `XPath`s in that class are evaluated in the context
+  instance of the specified `AwesomeXML` class. `XPath`s in that class are evaluated in the context
   of the new current node.
 - `.simple_array_node` and `.child_array_node` - work like their non-`array` counterparts, except they evaluate
   each node passed in through the `xpath` argument and return it as an array.

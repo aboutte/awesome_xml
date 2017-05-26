@@ -48,7 +48,7 @@ module AwesomeXML
         end
 
         def parsed_unit
-          format_chars[0]
+          format_chars[0].upcase
         end
 
         def valid_parse_length?
@@ -67,7 +67,7 @@ module AwesomeXML
 
         class InvalidParseLength < StandardError
           def initialize(parsed_parse_length)
-            super("Couldn't parse '#{parsed_parse_length}' to an integer.")
+            super("Couldn't parse '#{parsed_parse_length}' into an integer.")
           end
         end
       end

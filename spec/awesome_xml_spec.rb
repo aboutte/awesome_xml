@@ -3,31 +3,31 @@
 require File.expand_path("../../lib/awesome_xml.rb", __FILE__)
 
 RSpec.describe AwesomeXML do
-  describe '#constant_node' do
-    subject { root.new(anything).constant_node_name }
+  describe '.constant_node' do
+    subject { awesome_class.parse(nil).constant }
 
-    let(:root) { RootWithConstantNode }
+    let(:awesome_class) { ClassWithConstantNode }
 
-    class RootWithConstantNode < Struct.new(:data)
-      include AwesomeXML::Root
+    class ClassWithConstantNode
+      include AwesomeXML
 
-      constant_node :constant_node_name, 'test test test'
+      constant_node :constant, 'test test test'
     end
 
     it { is_expected.to eq 'test test test' }
   end
 
-  describe '#method_node' do
-    subject { root.new(anything).method_name }
+  describe '.method_node' do
+    subject { awesome_class.parse(nil).method }
 
-    let(:root) { RootWithMethodNode }
+    let(:awesome_class) { ClassWithMethodNode }
 
-    class RootWithMethodNode < Struct.new(:data)
-      include AwesomeXML::Root
+    class ClassWithMethodNode
+      include AwesomeXML
 
-      method_node :method_name
+      method_node :method
 
-      def method_name
+      def method
         4 + 9
       end
     end
@@ -35,591 +35,563 @@ RSpec.describe AwesomeXML do
     it { is_expected.to eq 13 }
   end
 
-  describe '#text_node' do
-    subject { root.new(data).text_node_name }
+  describe '.set_context' do
+    subject { awesome_class.parse(xml).to_hash }
 
-    let(:data) { "<Some><Thing xyz='teeeest'/></Some>" }
+    let(:xml) { "<doc><some><thing>1234</thing></some></doc>" }
+    let(:awesome_class) { ClassWithSetContext }
 
-    context 'when not passing a block' do
-      let(:root) { RootWithTextNode }
+    class ClassWithSetContext
+      include AwesomeXML
 
-      class RootWithTextNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        text_node :text_node_name, '*/Thing/@xyz'
-      end
-
-      it { is_expected.to eq 'teeeest' }
+      set_context 'doc/some'
+      node :thing, :text
     end
 
-    context 'when passing a block' do
-      let(:root) { RootWithTextNodeAndBlock }
-
-      class RootWithTextNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        text_node(:text_node_name, '*/Thing/@xyz') { |node| node.gsub('eeee', 'e') }
-      end
-
-      it('yields the result to the block') { is_expected.to eq 'test' }
-    end
+    it { is_expected.to eq(thing: '1234') }
   end
 
-  describe '#integer_node' do
-    subject { root.new(data).integer_node_name }
+  describe '.with_context' do
+    subject { awesome_class.parse(xml).to_hash }
 
-    let(:data) { "<Some><Thing abc='321'/><Thing abc='123'/></Some>" }
+    let(:xml) { "<doc><some><thing>1234</thing></some></doc>" }
+    let(:awesome_class) { ClassWithWithContextBlock }
 
-    context 'when not passing a block' do
-      let(:root) { RootWithIntegerNode }
+    class ClassWithWithContextBlock
+      include AwesomeXML
 
-      class RootWithIntegerNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        integer_node :integer_node_name, '//Thing/@abc'
+      with_context '/doc/some' do
+        node :thing, :text
       end
-
-      it { is_expected.to eq 321 }
+      with_context '/doc' do
+        node :other_thing, :text, xpath: 'some/thing'
+      end
     end
 
-    context 'when passing a block' do
-      let(:root) { RootWithIntegerNodeAndBlock }
-
-      class RootWithIntegerNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        integer_node(:integer_node_name, '//Thing/@abc') { |node| node * 100 }
-      end
-
-      it('yields the result to the block') { is_expected.to eq 32_100 }
-    end
+    it { is_expected.to eq(thing: '1234', other_thing: '1234') }
   end
 
-  describe '#float_node' do
-    subject { root.new(data).float_node_name }
+  describe '.context' do
+    subject { awesome_class.context }
 
-    let(:data) { "<Some><Thing abc='321.0'/><Thing abc='123.4'/></Some>" }
+    let(:awesome_class) { ClassWithContext }
 
-    context 'when not passing a block' do
-      let(:root) { RootWithFloatNode }
+    class ClassWithContext
+      include AwesomeXML
 
-      class RootWithFloatNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        float_node :float_node_name, '//Thing/@abc'
-      end
-
-      it { is_expected.to eq 321.0 }
+      set_context 'doc/some'
+      node :thing, :text
     end
 
-    context 'when passing a block' do
-      let(:root) { RootWithFloatNodeAndBlock }
-
-      class RootWithFloatNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        float_node(:float_node_name, '//Thing/@abc') { |node| node * 100 }
-      end
-
-      it('yields the result to the block') { is_expected.to eq 32_100.0 }
-    end
+    it { is_expected.to eq 'doc/some' }
   end
 
-  describe '#duration_node' do
-    subject { root.new(data).duration_node_name }
+  describe '.node' do
+    subject { awesome_class.parse(xml).thing }
 
-    let(:data) { "<Some><Time abc='23.59'/></Some>" }
+    let(:xml) { "<some><thing>1234</thing></some>" }
 
-    context 'when not passing a block' do
-      let(:root) { RootWithDurationNode }
+    context 'when passing type text' do
+      let(:awesome_class) { ClassWithTextNode }
 
-      class RootWithDurationNode < Struct.new(:data)
-        include AwesomeXML::Root
+      class ClassWithTextNode
+        include AwesomeXML
 
-        duration_node :duration_node_name, '//Time/@abc', format: '{H}.{M}'
+        set_context 'some'
+        node :thing, :text
       end
 
-      it { is_expected.to eq 23.hours + 59.minutes }
+      it { is_expected.to eq '1234' }
     end
 
-    context 'when passing a block' do
-      let(:root) { RootWithDurationNodeAndBlock }
+    context 'when passing type integer' do
+      let(:awesome_class) { ClassWithIntegerNode }
 
-      class RootWithDurationNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
+      class ClassWithIntegerNode
+        include AwesomeXML
 
-        duration_node(:duration_node_name, '//Time/@abc', format: '{H}.{M}') { |node| node + 1.minute }
+        set_context 'some'
+        node :thing, :integer
       end
 
-      it('yields the result to the block') { is_expected.to eq 24.hours }
-    end
-  end
-
-  describe '#simple_node' do
-    subject { root.new(data).simple_node_name }
-
-    let(:data) { "<Some><Thing abc='321'/><Thing abc='123'/></Some>" }
-
-    context 'when not passing a block' do
-      let(:root) { RootWithSimpleNode }
-
-      class RootWithSimpleNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        simple_node :integer, :simple_node_name, '//Thing/@abc'
-      end
-
-      it { is_expected.to eq 321 }
+      it { is_expected.to eq 1234 }
     end
 
-    context 'when passing a block' do
-      let(:root) { RootWithSimpleNodeAndBlock }
+    context 'when passing type float' do
+      let(:awesome_class) { ClassWithFloatNode }
 
-      class RootWithSimpleNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
+      class ClassWithFloatNode
+        include AwesomeXML
 
-        simple_node(:integer, :simple_node_name, '//Thing/@abc') { |node| node * 100 }
+        set_context 'some'
+        node :thing, :float
       end
 
-      it('yields the result to the block') { is_expected.to eq 32_100 }
+      it { is_expected.to eq 1234.0 }
+    end
+
+    context 'when passing type duration' do
+      context 'when passing a format option' do
+        let(:awesome_class) { ClassWithDurationNode }
+
+        class ClassWithDurationNode
+          include AwesomeXML
+
+          set_context 'some'
+          node :thing, :duration, format: '{H2}{M}'
+        end
+
+        it { is_expected.to eq 754.minutes }
+      end
+
+      context 'when not passing a format option' do
+        let(:awesome_class) { ClassWithDurationNodeNoFormat }
+
+        class ClassWithDurationNodeNoFormat
+          include AwesomeXML
+
+          set_context 'some'
+          node :thing, :duration
+        end
+
+        specify { expect { subject }.to raise_error AwesomeXML::Duration::NoFormatProvided }
+      end
+    end
+
+    context 'when passing a class as type' do
+      let(:awesome_class) { ClassWithNodeFromClass }
+
+      class ClassWithNodeFromClass
+        include AwesomeXML
+
+        class Thing
+          include AwesomeXML
+
+          node :value, :integer, tag_type: :value
+        end
+
+        set_context 'some'
+        node :thing, Thing
+      end
+
+      it { is_expected.to eq(value: 1234) }
+    end
+
+    context 'when passing a class name as type' do
+      let(:awesome_class) { ClassWithNodeFromClassName }
+
+      class ClassWithNodeFromClassName
+        include AwesomeXML
+
+        set_context 'some'
+        node :thing, 'Thing'
+
+        class Thing
+          include AwesomeXML
+
+          node :value, :integer, tag_type: :value
+        end
+      end
+
+      it { is_expected.to eq(value: 1234) }
     end
 
     context 'when passing an unknown type' do
-      subject do
-        class RootWithInvalidNode
-          include AwesomeXML::Root
+      let(:awesome_class) { ClassWithInvalidNode }
 
-          simple_node(:abcdef, 'adfbd', 'adfvadf')
+      class ClassWithInvalidNode
+        include AwesomeXML
+
+        set_context 'some'
+        node :thing, :adfbd
+      end
+
+      specify { expect { subject }.to raise_error(AwesomeXML::Type::UnknownNodeType) }
+    end
+
+    context 'when passing a block' do
+      context 'vanilla' do
+        let(:awesome_class) { ClassWithBlock }
+
+        class ClassWithBlock
+          include AwesomeXML
+
+          set_context 'some'
+          node(:thing, :integer) { |node| node * 100 }
+        end
+
+        it { is_expected.to eq 123_400 }
+      end
+
+      context 'that accesses instance methods' do
+        let(:xml) { "<some><thing multi='10'>1234</thing></some>" }
+        let(:awesome_class) { ClassWithBlockReferencingInstance }
+
+        class ClassWithBlockReferencingInstance
+          include AwesomeXML
+
+          set_context 'some'
+          node :multi, :integer, xpath: './thing/@multi'
+          node(:thing, :integer) { |node, instance| node * instance.multi }
+        end
+
+        it { is_expected.to eq 12_340 }
+      end
+    end
+
+    context 'when overriding the attribute reader' do
+      context 'vanilla' do
+        let(:awesome_class) { ClassWithOverridingMethod }
+
+        class ClassWithOverridingMethod
+          include AwesomeXML
+
+          set_context 'some'
+          node :thing, :integer
+
+          def thing
+            @thing * 100
+          end
+        end
+
+        it('returns the modified value') { is_expected.to eq 123_400 }
+      end
+
+      context 'and accessing other nodes from there' do
+        let(:xml) { "<some><thing multi='10'>1234</thing></some>" }
+        let(:awesome_class) { ClassWithOverridingMethodAndNodeAccess }
+
+        class ClassWithOverridingMethodAndNodeAccess
+          include AwesomeXML
+
+          set_context 'some'
+          node :thing, :integer
+          node :multi, :integer, xpath: './thing/@multi'
+
+          def thing
+            @thing * multi
+          end
+        end
+
+        it('returns the modified value') { is_expected.to eq 12_340 }
+      end
+    end
+
+    context 'when passing array as an option' do
+      subject { awesome_class.parse(xml).things }
+
+      let(:xml) do
+        "<some><thing>123</thing><thing>456</thing></some>"
+      end
+      let(:awesome_class) { ClassWithArrayNode }
+
+      class ClassWithArrayNode
+        include AwesomeXML
+
+        set_context 'some'
+        node :things, :integer, array: true
+      end
+
+      it { is_expected.to eq([123, 456]) }
+    end
+
+    context 'when not passing in a specific xpath' do
+      context 'when passing tag_type in options' do
+        context 'when passing tag_type attribute' do
+          let(:xml) do
+            "<some><item thing='Title'/></some>"
+          end
+          let(:awesome_class) { ClassWithAttributeNode }
+
+          class ClassWithAttributeNode
+            include AwesomeXML
+
+            set_context 'some/item'
+            node :thing, :text, tag_type: :attribute
+          end
+
+          it { is_expected.to eq('Title') }
+        end
+
+        context 'when passing tag_type value' do
+          let(:xml) do
+            "<some>Content</some>"
+          end
+          let(:awesome_class) { ClassWithValueNode }
+
+          class ClassWithValueNode
+            include AwesomeXML
+
+            set_context 'some'
+            node :thing, :text, tag_type: :value
+          end
+
+          it { is_expected.to eq('Content') }
+        end
+      end
+    end
+
+    context 'when passing in a look for option' do
+      let(:xml) { "<some><Thing>1234</Thing></some>" }
+      let(:awesome_class) { ClassWithLookFor }
+
+      class ClassWithLookFor
+        include AwesomeXML
+
+        set_context 'some'
+        node :thing, :text, look_for: 'Thing'
+      end
+
+      it { is_expected.to eq '1234' }
+    end
+
+    context 'when passing in a specific xpath' do
+      let(:xml) { "<some><Thing real='n'>1234</Thing><Thing real='y'>4321</Thing></some>" }
+      let(:awesome_class) { ClassWithXPath }
+
+      class ClassWithXPath
+        include AwesomeXML
+
+        set_context 'some'
+        node :thing, :text, xpath: "./Thing[@real='y']"
+      end
+
+      it { is_expected.to eq '4321' }
+    end
+
+    context 'when passing default value' do
+      let(:awesome_class) { ClassWithDefault }
+
+      class ClassWithDefault
+        include AwesomeXML
+
+        set_context 'some'
+        node :thing, :text, default: '1900'
+      end
+
+      context 'but value could be parsed' do
+        context 'and it is not empty' do
+          let(:xml) { "<some><thing>1234</thing></some>" }
+
+          it { is_expected.to eq '1234' }
+        end
+
+        context 'and it is empty' do
+          let(:xml) { "<some><thing></thing></some>" }
+
+          it { is_expected.to eq '' }
         end
       end
 
-      specify { expect { subject }.to raise_error(AwesomeXML::BuilderMethods::UnknownNodeType) }
-    end
-  end
+      context 'and value could not be parsed' do
+        let(:xml) { "<some></some>" }
 
-  describe '#text_array_node' do
-    subject { root.new(data).things }
-
-    let(:data) do
-      "<Doc><Some><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore><Thing abc='987'/></SomeMore></Doc>"
+        it { is_expected.to eq '1900' }
+      end
     end
 
-    context 'when not passing a block' do
-      let(:root) { RootWithTextArrayNode }
+    context 'when passing default value for empty string' do
+      let(:awesome_class) { ClassWithDefaultForEmpty }
 
-      class RootWithTextArrayNode < Struct.new(:data)
-        include AwesomeXML::Root
+      class ClassWithDefaultForEmpty
+        include AwesomeXML
 
-        text_array_node :things, "//Thing/@abc"
+        set_context 'some'
+        node :thing, :text, default_empty: '1900'
       end
 
-      it { is_expected.to eq(%w(321 123 987)) }
-    end
+      context 'but value could be parsed' do
+        context 'and it is not empty' do
+          let(:xml) { "<some><thing>1234</thing></some>" }
 
-    context 'when passing a block' do
-      let(:root) { RootWithTextArrayNodeAndBlock }
+          it { is_expected.to eq '1234' }
+        end
 
-      class RootWithTextArrayNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
+        context 'and it is empty' do
+          let(:xml) { "<some><thing></thing></some>" }
 
-        text_array_node(:things, "//Thing/@abc") { |node| node.reverse }
-      end
-
-      it('yields the result to the block') { is_expected.to eq(%w(987 123 321)) }
-    end
-  end
-
-  describe '#integer_array_node' do
-    subject { root.new(data).things }
-
-    let(:data) do
-      "<Doc><Some><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore><Thing abc='987'/></SomeMore></Doc>"
-    end
-
-    context 'when not passing a block' do
-      let(:root) { RootWithIntegerArrayNode }
-
-      class RootWithIntegerArrayNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        integer_array_node :things, "//Thing/@abc"
-      end
-
-      it { is_expected.to eq([321, 123, 987]) }
-    end
-
-    context 'when passing a block' do
-      let(:root) { RootWithIntegerArrayNodeAndBlock }
-
-      class RootWithIntegerArrayNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        integer_array_node(:things, "//Thing/@abc") { |node| node.reverse }
-      end
-
-      it('yields the result to the block') { is_expected.to eq([987, 123, 321]) }
-    end
-  end
-
-  describe '#float_array_node' do
-    subject { root.new(data).things }
-
-    let(:data) do
-      "<Doc><Some><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore><Thing abc='987'/></SomeMore></Doc>"
-    end
-
-    context 'when not passing a block' do
-      let(:root) { RootWithFloatArrayNode }
-
-      class RootWithFloatArrayNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        float_array_node :things, "//Thing/@abc"
-      end
-
-      it { is_expected.to eq([321.0, 123.0, 987.0]) }
-    end
-
-    context 'when passing a block' do
-      let(:root) { RootWithFloatArrayNodeAndBlock }
-
-      class RootWithFloatArrayNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        float_array_node(:things, "//Thing/@abc") { |node| node.reverse }
-      end
-
-      it('yields the result to the block') { is_expected.to eq([987.0, 123.0, 321.0]) }
-    end
-  end
-
-  describe '#duration_array_node' do
-    subject { root.new(data).times }
-
-    let(:data) do
-      "<Doc><Some><Time abc='1:60'/><Time abc='45:0'/></Some>\
-      <SomeMore><Time abc='987:654'/></SomeMore></Doc>"
-    end
-
-    context 'when not passing a block' do
-      let(:root) { RootWithDurationArrayNode }
-
-      class RootWithDurationArrayNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        duration_array_node :times, "//Time/@abc", format: '{H}:{M}'
-      end
-
-      it { is_expected.to eq([2.hours, 45.hours, 987.hours + 654.minutes]) }
-    end
-
-    context 'when passing a block' do
-      let(:root) { RootWithDurationArrayNodeAndBlock }
-
-      class RootWithDurationArrayNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        duration_array_node(:times, "//Time/@abc", format: '{H}:{M}') { |node| node.reverse }
-      end
-
-      it('yields the result to the block') { is_expected.to eq([987.hours + 654.minutes, 45.hours, 2.hours]) }
-    end
-  end
-
-  describe '#simple_array_node' do
-    subject { root.new(data).things }
-
-    let(:data) do
-      "<Doc><Some times='10'><Thing abc='321'/><Thing abc='123'/></Some>\
-      <SomeMore times='100'><Thing abc='987'/></SomeMore></Doc>"
-    end
-
-    context 'when not passing a block' do
-      let(:root) { RootWithArrayNode }
-
-      class RootWithArrayNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        simple_array_node :integer, :things, "//Thing/@abc"
-      end
-
-      it { is_expected.to eq([321, 123, 987]) }
-    end
-
-    context 'when passing a block' do
-      let(:root) { RootWithArrayNodeAndBlock }
-
-      class RootWithArrayNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        simple_array_node(:integer, :things, "//Thing/@abc") { |node| node.reverse }
-      end
-
-      it('yields the result to the block') { is_expected.to eq([987, 123, 321]) }
-    end
-
-    context 'when passing an unknown type' do
-      subject do
-        class RootWithInvalidArrayNode
-          include AwesomeXML::Root
-
-          simple_array_node(:abcdef, 'adfbd', 'adfvadf')
+          it { is_expected.to eq '1900' }
         end
       end
 
-      specify { expect { subject }.to raise_error(AwesomeXML::BuilderMethods::UnknownNodeType) }
+      context 'and value could not be parsed' do
+        let(:xml) { "<some></some>" }
+
+        it { is_expected.to eq nil }
+      end
     end
   end
 
-  describe '#child_node' do
-    subject { root.new(data).thing }
+  describe '#parent_node' do
+    subject { awesome_class.parse(xml).to_hash }
 
-    let(:data) { "<Some><Thing abc='321' real='no'/><Thing abc='123' real='yes'/></Some>" }
+    let(:xml) { "<some multi='10'><thing>1234</thing></some>" }
+    let(:awesome_class) { ClassWithChildThatReachesUp }
 
-    context 'when not passing a block' do
-      let(:root) { RootWithChildNode }
+    class ClassWithChildThatReachesUp
+      include AwesomeXML
 
-      class RootWithChildNode < Struct.new(:data)
-        include AwesomeXML::Root
+      set_context 'some'
+      node :multi, :integer, tag_type: :attribute
+      node :thing, 'Thing'
+      
+      class Thing
+        include AwesomeXML
 
-        child_node :thing, 'Thing', "Some/Thing[@real='yes']"
+        node :value, :integer, tag_type: :value
 
-        class Thing
-          include AwesomeXML::Child
-
-          integer_node(:correct_integer_node, '@abc')
-          integer_node(:incorrect_integer_node, 'Some/Thing/@abc')
+        def value
+          @value * parent_node.multi
         end
       end
-
-      it { is_expected.to eq(correct_integer_node: 123, incorrect_integer_node: nil) }
     end
 
-    context 'when passing a block' do
-      let(:root) { RootWithChildNodeWithBlock }
-
-      class RootWithChildNodeWithBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        child_node(:thing, 'Thing', "Some/Thing[@real='yes']") { |node| [node, node] }
-
-        class Thing
-          include AwesomeXML::Child
-
-          integer_node(:integer_node, '@abc')
-        end
-      end
-
-      it('yields the result to the block') { is_expected.to eq([{ integer_node: 123 }, { integer_node: 123 }]) }
-    end
-  end
-
-  describe '#child_array_node' do
-    subject { root.new(data).things }
-
-    let(:data) { "<Doc><Thing name='abc'>123</Thing><Thing name='bcd'>321</Thing></Doc>" }
-
-    context 'when not passing a block' do
-      let(:root) { RootWithChildArrayNode }
-
-      class RootWithChildArrayNode < Struct.new(:data)
-        include AwesomeXML::Root
-
-        child_array_node :things, 'Child', "//Thing"
-
-        class Child
-          include AwesomeXML::Child
-
-          text_node :name, '@name'
-          integer_node :value, '.'
-        end
-      end
-
-      it { is_expected.to eq([{ name: 'abc', value: 123 }, { name: 'bcd', value: 321 }]) }
-    end
-
-    context 'when passing a block' do
-      let(:root) { RootWithChildArrayNodeAndBlock }
-
-      class RootWithChildArrayNodeAndBlock < Struct.new(:data)
-        include AwesomeXML::Root
-
-        child_array_node(:things, 'Child', "//Thing") { |node| node.reverse }
-
-        class Child
-          include AwesomeXML::Child
-
-          text_node :name, '@name'
-          integer_node :value, '.'
-        end
-      end
-
-      it 'yields the result to the block' do
-        is_expected.to eq([{ name: 'bcd', value: 321 }, { name: 'abc', value: 123 }])
-      end
-    end
+    it { is_expected.to eq(multi: 10, thing: { value: 12_340 }) }
   end
 
   describe '.nodes' do
-    subject { root.nodes }
+    subject { awesome_class.nodes }
 
-    let(:root) { RootWithALotOfNodes }
+    let(:awesome_class) { ClassWithALotOfNodes }
 
-    class RootWithALotOfNodes
-      include AwesomeXML::Root
+    class ClassWithALotOfNodes
+      include AwesomeXML
 
-      constant_node :constant_node_name, 'test test test'
-      constant_node :private_constant_node_name, 'test test test', private: true
-      text_node :text_node_name, '*/Thing/@xyz'
-      text_node :private_text_node_name, '*/Thing/@xyz', private: true
-      integer_node :integer_node_name, '//Thing/@abc'
-      integer_node :private_integer_node_name, '//Thing/@abc', private: true
-      child_node :thing, 'Thing', "Some/Thing[@real='yes']"
-      child_node :private_thing, 'Thing', "Some/Thing[@real='yes']", private: true
-      simple_array_node(:integer, :things, "//Thing/@abc") { |node| node.reverse }
-      simple_array_node(:integer, :things, "//Thing/@abc", private: true) { |node| node.reverse }
+      constant_node :constant_node_name, 'xyz'
+      constant_node :private_constant_node_name, :method, private: true
+      method_node :method_node_name
+      node :text_node_name, :text
+      node :private_text_node_name, :text, private: true
+      node :integer_node_name, :integer
+      node :private_integer_node_name, :integer, private: true
+      node :thing, 'Thing'
+      node :private_thing, 'Thing', private: true
+      node(:things, :integer, array: true) { |node| node.reverse }
+      node(:private_things, :integer, array: true, private: true) { |node| node.reverse }
 
       class Thing
-        include AwesomeXML::Child
+        include AwesomeXML
       end
     end
 
-    it 'only lists the ones not declared as private' do
-      is_expected.to eq %i(constant_node_name text_node_name integer_node_name thing things)
+    it 'lists all nodes, even private ones' do
+      is_expected.to eq %i(
+        constant_node_name
+        private_constant_node_name
+        method_node_name
+        text_node_name
+        private_text_node_name
+        integer_node_name
+        private_integer_node_name
+        thing
+        private_thing
+        things
+        private_things
+      )
     end
   end
 
-  describe '.parse_type' do
-    subject { root.parse_type(string, type, format) }
+  describe '.public_nodes' do
+    subject { awesome_class.public_nodes }
 
-    let(:root) { MinimalRoot }
-    let(:format) { nil }
+    let(:awesome_class) { ClassWithALotOfNodes }
 
-    class MinimalRoot < Struct.new(:data)
-      include AwesomeXML::Root
-    end
-
-    context 'parsing a string' do
-      let(:type) { :text }
-      let(:string) { 'abcdef' }
-
-      it { is_expected.to eq string }
-
-      context 'when string is nil' do
-        let(:string) { nil }
-
-        it { is_expected.to eq nil }
-      end
-    end
-
-    context 'parsing an integer' do
-      let(:type) { :integer }
-      let(:string) { '15' }
-
-      it { is_expected.to eq 15 }
-
-      context 'when string is nil' do
-        let(:string) { nil }
-
-        it { is_expected.to eq nil }
-      end
-
-      context 'when string is empty' do
-        let(:string) { '' }
-
-        it { is_expected.to eq nil }
-      end
-    end
-
-    context 'parsing a float' do
-      let(:type) { :float }
-      let(:string) { '15.5' }
-
-      it { is_expected.to eq 15.5 }
-
-      context 'when string is nil' do
-        let(:string) { nil }
-
-        it { is_expected.to eq nil }
-      end
-
-      context 'when string is empty' do
-        let(:string) { '' }
-
-        it { is_expected.to eq nil }
-      end
-    end
-
-    context 'parsing a duration' do
-      let(:type) { :duration }
-      let(:string) { '12m34' }
-      let(:format) { '{M}m{S}' }
-
-      it { is_expected.to eq 12.minutes + 34.seconds }
-
-      context 'when string is nil' do
-        let(:string) { nil }
-
-        it { is_expected.to eq nil }
-      end
-
-      context 'when string is empty' do
-        let(:string) { '' }
-
-        it { is_expected.to eq nil }
-      end
-    end
-
-    context 'parsing an unknown type' do
-      let(:type) { :xxx }
-      let(:string) { '15.5' }
-
-      it { is_expected.to eq nil }
+    it 'only lists the ones not declared as private' do
+      is_expected.to eq %i(constant_node_name method_node_name text_node_name integer_node_name thing things)
     end
   end
 
   describe '#to_hash' do
-    subject { root.new(data).to_hash }
+    subject { awesome_class.parse(xml).to_hash }
 
-    let(:root) { AnotherRootWithALotOfNodes }
-    let(:data) do
-      "<doc title='Poop'><things><thing s='a'>2</thing>\
-      <thing s='b'>20</thing></things><stuff title='peep'>STUFF</stuff></doc>"
-    end
+    context 'when passing nil xml' do
+      let(:xml) { nil }
+      let(:awesome_class) { ClassWithForNilXML }
 
-    class AnotherRootWithALotOfNodes < Struct.new(:data)
-      include AwesomeXML::Root
+      class ClassWithForNilXML
+        include AwesomeXML
 
-      text_node :title, 'doc/@title'
-      integer_array_node :thing_values, 'doc/things/thing'
-      child_array_node :things, 'Thing', 'doc/things/thing'
-      child_node :stuff, 'Stuff', 'doc/stuff'
-
-      class Thing
-        include AwesomeXML::Child
-
-        text_node :s, '@s'
-        integer_node :value, '.'
+        set_context 'some'
+        node :thing, :text
+        node :things, :text, array: true
       end
 
-      class Stuff
-        include AwesomeXML::Child
-
-        text_node :title, '@title'
-        text_node :text, '.'
-      end
+      it { is_expected.to eq(thing: nil, things: []) }
     end
 
-    it do
-      is_expected.to eq(
-        title: 'Poop',
-        thing_values: [2, 20],
-        things: [{ s: 'a', value: 2 }, { s: 'b', value: 20 }],
-        stuff: { title: 'peep', text: 'STUFF' }
-      )
+    context 'when passing xml' do
+      let(:awesome_class) { AnotherClassWithALotOfNodes }
+      let(:xml) do
+        "<doc title='Poop'><things><thing s='a' t=''>2</thing>\
+        <thing s='b' t='00d2h17m'>20.2</thing></things><stuff>STUFF</stuff></doc>"
+      end
+
+      class AnotherClassWithALotOfNodes
+        include AwesomeXML
+
+        set_context 'doc'
+        node :title, :text, tag_type: :attribute
+        with_context 'things/thing' do
+          node :thing_names, :text, array: true, tag_type: :attribute, look_for: 's'
+          node :thing_integer_values, :integer, array: true, tag_type: :value
+          node :thing_values, :float, array: true, tag_type: :value
+          node :thing_durations, :duration, xpath: './@t', array: true, format: '{D}d{H}h{M}m', default_empty: nil
+        end
+        node :things, 'Thing', xpath: 'things/thing', array: true
+        node :stuff, 'Stuff'
+
+        class Thing
+          include AwesomeXML
+
+          node :s, :text, tag_type: :attribute
+          node :integer_value, :integer, tag_type: :value
+          node :value, :float, tag_type: :value
+          node :duration, :duration, tag_type: :attribute, look_for: 't', format: '{D}d{H}h{M}m', default_empty: 1.hour
+        end
+
+        class Stuff
+          include AwesomeXML
+
+          node :text, :text, tag_type: :value
+        end
+      end
+
+      let(:expected_hash) do
+        {
+          title: 'Poop',
+          thing_names: ['a', 'b'],
+          thing_integer_values: [2, 20],
+          thing_values: [2.0, 20.2],
+          thing_durations: [nil, 137.minutes],
+          things: [
+            {
+              s: 'a',
+              integer_value: 2,
+              value: 2.0,
+              duration: 1.hour
+            },
+            {
+              s: 'b',
+              integer_value: 20,
+              value: 20.2,
+              duration: 137.minutes
+            }
+          ],
+          stuff: { text: 'STUFF' }
+        }
+      end
+
+      it do
+        is_expected.to eq expected_hash
+      end
+
+      describe '#evaluate' do
+        subject { awesome_class.parse(xml).evaluate }
+
+        it do
+          is_expected.to eq expected_hash
+        end
+      end
     end
   end
 end

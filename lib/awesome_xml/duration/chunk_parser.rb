@@ -10,8 +10,8 @@ module AwesomeXML
 
       # Parses a string given as `duration_string_chunk` according to the rules of the passed in
       # `format_chunk`. The latter being either a `AwesomeXML::Duration::Format::StaticChunk`
-      # or a `AwesomeXML::Duration::Format::DynamicChunk`. Saves the resulting `AwesomeXML::Duration`
-      # object in the attribute `duration`.
+      # or a `AwesomeXML::Duration::Format::DynamicChunk`. Saves the resulting duration
+      # in the attribute `duration`.
       def initialize(duration_string_chunk, format_chunk)
         @duration_string_chunk = duration_string_chunk
         @format_chunk = format_chunk
@@ -22,10 +22,10 @@ module AwesomeXML
 
       def parse
         if format_chunk.dynamic?
-          @duration = AwesomeXML::Duration.new(format_chunk.unit => number)
+          @duration = number.public_send(format_chunk.unit)
         else
           fail format_mismatch unless duration_string_chunk == format_chunk.to_s
-          @duration = AwesomeXML::Duration.new
+          @duration = 0.seconds
         end
       end
 

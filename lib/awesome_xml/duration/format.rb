@@ -8,12 +8,11 @@ module AwesomeXML
       private :format_string
 
       # Returns an `AwesomeXML::Duration::Format` instance representing a user defined
-      # duration format specified by the passed on `format_string`. Splits the format
-      # string into chunks that are each one of `AwesomeXML::Duration::Format::StaticChunk`
-      # or `AwesomeXML::Duration::Format::DynamicChunk` and saves it in the attribute `chunks`.
-      # The second class mentioned is used for section of the format string inside curly
-      # brackets. For more information about the syntax of the format string, look in the
-      # documentation of `AwesomeXML::Duration::Parser`.
+      # duration format specified by the passed in `format_string`. Splits the format
+      # string into chunks that are each one of either `AwesomeXML::Duration::Format::StaticChunk`
+      # or `AwesomeXML::Duration::Format::DynamicChunk` and saves them in the attribute `chunks`.
+      # The latter class mentioned is used for a section of the format string inside curly
+      # brackets. For more information about the syntax of the format string, read the README.
       def initialize(format_string)
         @format_string = format_string
         @chunks = []
