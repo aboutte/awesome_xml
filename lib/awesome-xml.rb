@@ -22,7 +22,7 @@ FILES.each do |file|
 end
 
 require 'nokogiri'
-require 'active_support/all'
+require 'active_support/time'
 
 # This module should be included by every class wishing to pose as an `AwesomeXML` node.
 # It gives access to the methods described in this module and also to class methods in the

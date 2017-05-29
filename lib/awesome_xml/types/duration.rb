@@ -9,9 +9,9 @@ module AwesomeXML
 
     def parse_value
       fail NoFormatProvided if options[:format].nil?
-      string_chunks.zip(format_chunks).sum do |string_chunk, format_chunk|
+      string_chunks.zip(format_chunks).map do |string_chunk, format_chunk|
         AwesomeXML::Duration::ChunkParser.new(string_chunk, format_chunk).duration
-      end
+      end.reduce(:+) || 0.seconds
     end
 
     def string_chunks
