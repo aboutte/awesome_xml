@@ -167,7 +167,7 @@ RSpec.describe AwesomeXML do
         class Thing
           include AwesomeXML
 
-          node :value, :integer, tag_type: :value
+          node :value, :integer, self: true
         end
 
         set_context 'some'
@@ -189,7 +189,7 @@ RSpec.describe AwesomeXML do
         class Thing
           include AwesomeXML
 
-          node :value, :integer, tag_type: :value
+          node :value, :integer, self: true
         end
       end
 
@@ -296,8 +296,22 @@ RSpec.describe AwesomeXML do
     end
 
     context 'when not passing in a specific xpath' do
-      context 'when passing tag_type in options' do
-        context 'when passing tag_type attribute' do
+      context 'when passing in :element option' do
+        let(:xml) { "<some><Thing>1234</Thing></some>" }
+        let(:awesome_class) { ClassWithLookFor }
+
+        class ClassWithLookFor
+          include AwesomeXML
+
+          set_context 'some'
+          node :thing, :text, element: 'Thing'
+        end
+
+        it { is_expected.to eq '1234' }
+      end
+
+      context 'when passing :attribute option' do
+        context 'set to true' do
           let(:xml) do
             "<some><item thing='Title'/></some>"
           end
@@ -307,42 +321,46 @@ RSpec.describe AwesomeXML do
             include AwesomeXML
 
             set_context 'some/item'
-            node :thing, :text, tag_type: :attribute
+            node :thing, :text, attribute: true
           end
 
           it { is_expected.to eq('Title') }
         end
 
-        context 'when passing tag_type value' do
+        context 'set to a symbol or string' do
+          let(:xml) do
+            "<some><item thang='Title'/></some>"
+          end
+          let(:awesome_class) { ClassWithAliasAttributeNode }
+
+          class ClassWithAliasAttributeNode
+            include AwesomeXML
+
+            set_context 'some/item'
+            node :thing, :text, attribute: :thang
+          end
+
+          it { is_expected.to eq('Title') }
+        end
+      end
+
+      context 'when passing :self option' do
+        context 'set to true' do
           let(:xml) do
             "<some>Content</some>"
           end
-          let(:awesome_class) { ClassWithValueNode }
+          let(:awesome_class) { ClassWithSelfNode }
 
-          class ClassWithValueNode
+          class ClassWithSelfNode
             include AwesomeXML
 
             set_context 'some'
-            node :thing, :text, tag_type: :value
+            node :thing, :text, self: true
           end
 
           it { is_expected.to eq('Content') }
         end
       end
-    end
-
-    context 'when passing in a look for option' do
-      let(:xml) { "<some><Thing>1234</Thing></some>" }
-      let(:awesome_class) { ClassWithLookFor }
-
-      class ClassWithLookFor
-        include AwesomeXML
-
-        set_context 'some'
-        node :thing, :text, look_for: 'Thing'
-      end
-
-      it { is_expected.to eq '1234' }
     end
 
     context 'when passing in a specific xpath' do
@@ -432,13 +450,13 @@ RSpec.describe AwesomeXML do
       include AwesomeXML
 
       set_context 'some'
-      node :multi, :integer, tag_type: :attribute
+      node :multi, :integer, attribute: true
       node :thing, 'Thing'
       
       class Thing
         include AwesomeXML
 
-        node :value, :integer, tag_type: :value
+        node :value, :integer, self: true
 
         def value
           @value * parent_node.multi
@@ -530,11 +548,11 @@ RSpec.describe AwesomeXML do
         include AwesomeXML
 
         set_context 'doc'
-        node :title, :text, tag_type: :attribute
+        node :title, :text, attribute: true
         with_context 'things/thing' do
-          node :thing_names, :text, array: true, tag_type: :attribute, look_for: 's'
-          node :thing_integer_values, :integer, array: true, tag_type: :value
-          node :thing_values, :float, array: true, tag_type: :value
+          node :thing_names, :text, array: true, attribute: 's'
+          node :thing_integer_values, :integer, array: true, self: true
+          node :thing_values, :float, array: true, self: true
           node :thing_durations, :duration, xpath: './@t', array: true, format: '{D}d{H}h{M}m', default_empty: nil
         end
         node :things, 'Thing', xpath: 'things/thing', array: true
@@ -543,16 +561,16 @@ RSpec.describe AwesomeXML do
         class Thing
           include AwesomeXML
 
-          node :s, :text, tag_type: :attribute
-          node :integer_value, :integer, tag_type: :value
-          node :value, :float, tag_type: :value
-          node :duration, :duration, tag_type: :attribute, look_for: 't', format: '{D}d{H}h{M}m', default_empty: 1.hour
+          node :s, :text, attribute: true
+          node :integer_value, :integer, self: true
+          node :value, :float, self: true
+          node :duration, :duration, attribute: 't', format: '{D}d{H}h{M}m', default_empty: 1.hour
         end
 
         class Stuff
           include AwesomeXML
 
-          node :text, :text, tag_type: :value
+          node :text, :text, self: true
         end
       end
 

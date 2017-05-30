@@ -92,23 +92,7 @@ my_document.title
 
 Secondly, it changes the result of the `#to_hash` method of your class. More about that later.
 
-## Accessing content of the current node
-
-This is another way of achieving the same thing as above:
-
-```ruby
-class MyDocument
-  include AwesomeXML
-
-  set_context 'document/title'
-  node :title, :text, tag_type: :value
-end
-```
-
-The option `tag_type: :value` tells the parser not to look in the child nodes but in the current node itself.
-It has the same effect as passing the explicit XPath `'.'`.
-
-## Accessing attributes
+## Attributes, elements and `self`
 
 Let's say your XML document has important data hidden in the attributes of tags:
 
@@ -116,18 +100,28 @@ Let's say your XML document has important data hidden in the attributes of tags:
 <document title='This is a document.'/>
 ```
 
-One way to do it is to pass the option `tag_type: :attribute` to your node:
+One way to do it is to pass the option `attribute: true` to your node:
 
 ```ruby
 class MyDocument
   include AwesomeXML
 
   set_context 'document'
-  node :title, :text, tag_type: :attribute
+  node :title, :text, attribute: true
 end
 ```
 
 This is the same as passing an explicit XPath `"./@#{name_of_you_node}"`.
+Instead of just `true`, you can pass in a symbol (or string) to the `:attribute` option that will then be used to
+build the XPath to your node, instead of using the node name. Use this whenever you want your nodes
+to be named differently than in the XML document.
+
+This is also true for the other two types of nodes: elements and `self`. By default, `AwesomeXML` will look for
+elements, so passing the option `element: true` will do nothing. But you can use the option like `:attribute`, in
+that you can pass something else than `true` to tell the parser to look for an element with a different name.
+
+The last type of node is `self`. Pass in `self: true` if you want to access the content of the current context
+node itself. This is equivalent to passing in `xpath: '.'`. Changing the option value will do nothing.
 
 ## Method nodes
 
@@ -195,18 +189,14 @@ class MyDocument
   class Item
     include AwesomeXML
 
-    node :reference, :integer, tag_type: :attribute, look_for: 'ref'
+    node :reference, :integer, attribute: :ref
     node :owner, :text
   end
 end
 ```
 
-Easy! As you see, you can pass in the option `:look_for` with a string that will then be used to
-build the XPath to your node, instead of using the node name. Use this whenever you want your nodes
-to be named differently than in the XML document.
-
-Also, you might have noticed that the context node for the `Item` class is automatically set. So need
-to call `.set_context` except you want a different context, of course.
+Easy! You might have noticed that the context node for the `Item` class is automatically set. No need
+to call `.set_context` except you want to override the default, of course.
 
 If you want, you can also pass in the class itself instead of a string with the class name.
 Just make sure that it is defined before you use it in your `.node` method! Like this:
@@ -218,7 +208,7 @@ class MyDocument
   class Item
     include AwesomeXML
 
-    node :reference, :integer, tag_type: :attribute, look_for: 'ref'
+    node :reference, :integer, attribute: :ref
     node :owner, :text
   end
 
@@ -228,7 +218,7 @@ class MyDocument
 end
 ```
 
-## Array Nodes
+## Array nodes
 
 What if you have more than one `<item/>`? Say your XML document looks like this:
 
@@ -253,7 +243,7 @@ class MyDocument
   include AwesomeXML
 
   set_context 'document/item'
-  node :refs, :integer, tag_type: :attribute, array: true
+  node :refs, :integer, attribute: true, array: true
 end
 ```
 
@@ -276,7 +266,7 @@ class MyDocument
   class Item
     include AwesomeXML
 
-    node :ref, :integer, tag_type: :attribute
+    node :ref, :integer, attribute: true
   end
 end
 ```
@@ -337,7 +327,7 @@ class MyDocument
   include AwesomeXML
 
   set_context 'document/items'
-  node :multiplicator, :integer, tag_type: :attribute
+  node :multiplicator, :integer, attribute: true
   node(:item_values, :integer, array: :true, xpath: './item/@value') do |values, instance|
     values.map { |value| value * instance.multiplicator }
   end
@@ -360,7 +350,7 @@ class MyDocument
   include AwesomeXML
 
   set_context 'document/items'
-  node :multiplicator, :integer, tag_type: :attribute
+  node :multiplicator, :integer, attribute: true
   node :item_values, :integer, array: :true, xpath: './item/@value'
 
   def item_values
@@ -404,7 +394,7 @@ class MyDocument
     include AwesomeXML
 
     node :multiplicator, :integer, xpath: '../@multiplicator', private: true
-    node :value, :integer, tag_type: :attribute
+    node :value, :integer, attribute: true
 
     def value
       @value * multiplicator
@@ -420,13 +410,13 @@ class MyDocument
   include AwesomeXML
 
   set_context 'document/items'
-  node :multiplicator, :integer, tag_type: :attribute, private: true
+  node :multiplicator, :integer, attribute: true, private: true
   node :items, 'Item', array: true
 
   class Item
     include AwesomeXML
 
-    node :value, :integer, tag_type: :attribute
+    node :value, :integer, attribute: true
 
     def value
       @value * parent_node.multiplicator
@@ -464,7 +454,7 @@ class MyDocument
   include AwesomeXML
 
   set_context 'document/items'
-  node :multiplicator, :integer, tag_type: :attribute, private: true
+  node :multiplicator, :integer, attribute: true, private: true
   node :item_values, :integer, array: :true, xpath: './item/@value'
 
   def item_values

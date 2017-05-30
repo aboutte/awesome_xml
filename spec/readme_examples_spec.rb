@@ -5,7 +5,7 @@ require File.expand_path("../../lib/awesome-xml.rb", __FILE__)
 RSpec.describe 'README examples' do
   let(:instance) { example_class.parse(xml) }
 
-  describe 'simple node' do
+  describe 'Create your first awesome node' do
     subject { instance.title }
 
     let(:xml) { '<document><title>This is a document.</title></document>' }
@@ -56,14 +56,14 @@ RSpec.describe 'README examples' do
         include AwesomeXML
 
         set_context 'document/title'
-        node :title, :text, tag_type: :value
+        node :title, :text, self: true
       end
 
       it { is_expected.to eq 'This is a document.' }
     end
   end
 
-  describe 'attributes' do
+  describe 'Attributes, elements and `self`' do
     subject { instance.title }
 
     let(:xml) { "<document title='This is a document.'/>" }
@@ -73,13 +73,13 @@ RSpec.describe 'README examples' do
       include AwesomeXML
 
       set_context 'document'
-      node :title, :text, tag_type: :attribute
+      node :title, :text, attribute: true
     end
 
     it { is_expected.to eq 'This is a document.' }
   end
 
-  describe 'method_node' do
+  describe 'Method nodes' do
     subject { instance.to_hash }
 
     let(:xml) { '<document><title>This is a document.</title></document>' }
@@ -100,7 +100,7 @@ RSpec.describe 'README examples' do
     it { is_expected.to eq(title: "This is a document.", reversed_title: ".tnemucod a si sihT") }
   end
 
-  describe 'child nodes' do
+  describe 'Child nodes' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><title>This is a document.</title><item ref='123'><owner>John Doe</owner></item></document>" }
@@ -118,7 +118,7 @@ RSpec.describe 'README examples' do
         class Item
           include AwesomeXML
 
-          node :reference, :integer, tag_type: :attribute, look_for: 'ref'
+          node :reference, :integer, attribute: :ref
           node :owner, :text
         end
       end
@@ -135,7 +135,7 @@ RSpec.describe 'README examples' do
         class Item
           include AwesomeXML
 
-          node :reference, :integer, tag_type: :attribute, look_for: 'ref'
+          node :reference, :integer, attribute: :ref
           node :owner, :text
         end
 
@@ -148,7 +148,7 @@ RSpec.describe 'README examples' do
     end
   end
 
-  describe 'array nodes' do
+  describe 'Array nodes' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><item ref='123'/><item ref='456'/><item ref='789'/></document>" }
@@ -160,7 +160,7 @@ RSpec.describe 'README examples' do
         include AwesomeXML
 
         set_context 'document/item'
-        node :refs, :integer, tag_type: :attribute, array: true
+        node :refs, :integer, attribute: true, array: true
       end
 
       it { is_expected.to eq(refs: [123, 456, 789]) }
@@ -178,7 +178,7 @@ RSpec.describe 'README examples' do
         class Item
           include AwesomeXML
 
-          node :ref, :integer, tag_type: :attribute
+          node :ref, :integer, attribute: true
         end
       end
 
@@ -186,7 +186,7 @@ RSpec.describe 'README examples' do
     end
   end
 
-  describe 'passing blocks' do
+  describe 'Passing blocks' do
     subject { instance.to_hash }
 
     context 'first example' do
@@ -197,7 +197,9 @@ RSpec.describe 'README examples' do
         include AwesomeXML
 
         set_context 'document'
-        node(:items, :integer, array: true, xpath: './item/@index') { |values| values.map { |value| value - 1 } }
+        node(:items, :integer, array: true, xpath: './item/@index') do |values|
+          values.map { |value| value - 1 }
+        end
       end
 
       it { is_expected.to eq(items: [0, 1, 2]) }
@@ -211,7 +213,7 @@ RSpec.describe 'README examples' do
         include AwesomeXML
 
         set_context 'document/items'
-        node :multiplicator, :integer, tag_type: :attribute
+        node :multiplicator, :integer, attribute: true
         node(:item_values, :integer, array: :true, xpath: './item/@value') do |values, instance|
           values.map { |value| value * instance.multiplicator }
         end
@@ -221,7 +223,7 @@ RSpec.describe 'README examples' do
     end
   end
 
-  describe 'overwriting attribute readers' do
+  describe 'Overwriting attribute readers' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
@@ -231,7 +233,7 @@ RSpec.describe 'README examples' do
       include AwesomeXML
 
       set_context 'document/items'
-      node :multiplicator, :integer, tag_type: :attribute
+      node :multiplicator, :integer, attribute: true
       node :item_values, :integer, array: :true, xpath: './item/@value'
 
       def item_values
@@ -242,7 +244,7 @@ RSpec.describe 'README examples' do
     it { is_expected.to eq(multiplicator: 100, item_values: [100, 200, 300]) }
   end
 
-  describe 'parent_node' do
+  describe '#parent_node' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
@@ -260,7 +262,7 @@ RSpec.describe 'README examples' do
           include AwesomeXML
 
           node :multiplicator, :integer, xpath: '../@multiplicator', private: true
-          node :value, :integer, tag_type: :attribute
+          node :value, :integer, attribute: true
 
           def value
             @value * multiplicator
@@ -278,13 +280,13 @@ RSpec.describe 'README examples' do
         include AwesomeXML
 
         set_context 'document/items'
-        node :multiplicator, :integer, tag_type: :attribute, private: true
+        node :multiplicator, :integer, attribute: true, private: true
         node :items, 'Item', array: true
 
         class Item
           include AwesomeXML
 
-          node :value, :integer, tag_type: :attribute
+          node :value, :integer, attribute: true
 
           def value
             @value * parent_node.multiplicator
@@ -296,7 +298,7 @@ RSpec.describe 'README examples' do
     end
   end
 
-  describe 'private' do
+  describe ':private' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
@@ -306,7 +308,7 @@ RSpec.describe 'README examples' do
       include AwesomeXML
 
       set_context 'document/items'
-      node :multiplicator, :integer, tag_type: :attribute, private: true
+      node :multiplicator, :integer, attribute: true, private: true
       node :item_values, :integer, array: :true, xpath: './item/@value'
 
       def item_values
