@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require File.expand_path("../../lib/awesome-xml.rb", __FILE__)
+require File.expand_path("../../lib/awesome_xml.rb", __FILE__)
 
 RSpec.describe AwesomeXML::NodeXPath do
   let(:node_xpath) { described_class.new(node_name, options) }

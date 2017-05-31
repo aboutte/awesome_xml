@@ -1,6 +1,6 @@
 # coding: utf-8
 Gem::Specification.new do |spec|
-  spec.name = 'awesome-xml'
+  spec.name = 'awesome_xml'
   spec.version = '1.0.0'
   spec.authors = ['Felix Lublasser']
   spec.email = ['felix.lublasser@fromatob.com']
@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
                    'LICENSE',
                    'Rakefile',
                    'README.md']
-  spec.homepage = 'https://github.com/fromAtoB/awesome-xml'
+  spec.homepage = 'https://github.com/fromAtoB/awesome_xml'
 
   spec.add_development_dependency 'bundler', '~> 1.12'
   spec.add_development_dependency 'rake', '~> 10.0'
