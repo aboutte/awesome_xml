@@ -1,7 +1,7 @@
 # coding: utf-8
 Gem::Specification.new do |spec|
   spec.name = 'awesome_xml'
-  spec.version = '1.0.0'
+  spec.version = '1.1.0'
   spec.authors = ['Felix Lublasser']
   spec.email = ['felix.lublasser@fromatob.com']
 
@@ -12,6 +12,7 @@ Gem::Specification.new do |spec|
   spec.licenses = %w(MIT)
 
   spec.files = Dir['lib/awesome_xml/**/*.rb',
+                   'lib/awesome_xml.rb',
                    'Gemfile',
                    'LICENSE',
                    'Rakefile',
