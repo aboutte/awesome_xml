@@ -83,6 +83,12 @@ RSpec.describe AwesomeXML::NodeXPath do
             end
           end
 
+          context 'when options[:element_name] is set' do
+            let(:options) { { array: true, element_name: true } }
+
+            it { is_expected.to eq './house' }
+          end
+
           context 'when options[:attribute] is set' do
             context 'to true' do
               let(:options) { { array: true, attribute: true } }
@@ -97,6 +103,12 @@ RSpec.describe AwesomeXML::NodeXPath do
             end
           end
 
+          context 'when options[:attribute_name] is set' do
+            let(:options) { { array: true, attribute_name: true } }
+
+            it { is_expected.to eq './@house' }
+          end
+
           context 'when options[:self] is set' do
             context 'to true' do
               let(:options) { { array: true, self: true } }
@@ -109,6 +121,12 @@ RSpec.describe AwesomeXML::NodeXPath do
 
               it { is_expected.to eq '.' }
             end
+          end
+
+          context 'when options[:self_name] is set' do
+            let(:options) { { array: true, self_name: true } }
+
+            it { is_expected.to eq '.' }
           end
         end
 

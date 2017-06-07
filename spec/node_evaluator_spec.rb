@@ -16,23 +16,129 @@ RSpec.describe AwesomeXML::NodeEvaluator do
     context 'when xml is valid' do
       context 'when xpath is valid' do
         context 'when nodes exist' do
-          context 'when array option not given' do
-            context 'when local_context option not given' do
-              it { is_expected.to eq 'TEXT' }
+          context 'when type is not a parsing type' do
+            let(:type_class) { AwesomeXML::Void }
+
+            context 'when array option not given' do
+              context 'when local_context option not given' do
+                it do
+                  is_expected.to be_a Nokogiri::XML::Element
+                  expect(subject.text).to eq 'TEXT'
+                end
+              end
+
+              context 'when local_context option given' do
+                let(:options) { { element_name: true, local_context: '/doc' } }
+                let(:xpath) { './text' }
+
+                it do
+                  is_expected.to be_a Nokogiri::XML::Element
+                  expect(subject.text).to eq 'TEXT'
+                end
+              end
             end
 
-            context 'when local_context option given' do
-              let(:options) { { local_context: '/doc' } }
-              let(:xpath) { './text' }
+            context 'when array option given' do
+              let(:options) { { element_name: true, array: true } }
 
-              it { is_expected.to eq 'TEXT' }
+              it do
+                is_expected.to contain_exactly(kind_of(Nokogiri::XML::Element), kind_of(Nokogiri::XML::Element))
+                expect(subject.first.text).to eq 'TEXT'
+                expect(subject.last.text).to eq 't.e.x.t.'
+              end
             end
           end
 
-          context 'when array option given' do
-            let(:options) { { array: true } }
+          context 'when type is a parsing type' do
+            context 'when :element_name option is given' do
+              let(:options) { { element_name: true } }
 
-            it { is_expected.to eq ['TEXT', 't.e.x.t.'] }
+              context 'when array option not given' do
+                context 'when local_context option not given' do
+                  it { is_expected.to eq 'text' }
+                end
+
+                context 'when local_context option given' do
+                  let(:options) { { element_name: true, local_context: '/doc' } }
+                  let(:xpath) { './text' }
+
+                  it { is_expected.to eq 'text' }
+                end
+              end
+
+              context 'when array option given' do
+                let(:options) { { element_name: true, array: true } }
+
+                it { is_expected.to eq ['text', 'text'] }
+              end
+            end
+
+            context 'when :attribute_name option is given' do
+              let(:options) { { attribute_name: true } }
+
+              context 'when array option not given' do
+                context 'when local_context option not given' do
+                  it { is_expected.to eq 'text' }
+                end
+
+                context 'when local_context option given' do
+                  let(:options) { { attribute_name: true, local_context: '/doc' } }
+                  let(:xpath) { './text' }
+
+                  it { is_expected.to eq 'text' }
+                end
+              end
+
+              context 'when array option given' do
+                let(:options) { { attribute_name: true, array: true } }
+
+                it { is_expected.to eq ['text', 'text'] }
+              end
+            end
+
+            context 'when :self_name option is given' do
+              let(:options) { { self_name: true } }
+
+              context 'when array option not given' do
+                context 'when local_context option not given' do
+                  it { is_expected.to eq 'text' }
+                end
+
+                context 'when local_context option given' do
+                  let(:options) { { self_name: true, local_context: '/doc' } }
+                  let(:xpath) { './text' }
+
+                  it { is_expected.to eq 'text' }
+                end
+              end
+
+              context 'when array option given' do
+                let(:options) { { self_name: true, array: true } }
+
+                it { is_expected.to eq ['text', 'text'] }
+              end
+            end
+
+            context 'when no :*_name option is given' do
+              context 'when array option not given' do
+                context 'when local_context option not given' do
+                  it { is_expected.to eq 'TEXT' }
+                end
+
+                context 'when local_context option given' do
+                  let(:options) { { local_context: '/doc' } }
+                  let(:xpath) { './text' }
+
+                  it { is_expected.to eq 'TEXT' }
+                end
+              end
+
+              context 'when array option given' do
+                let(:options) { { array: true } }
+
+                it { is_expected.to eq ['TEXT', 't.e.x.t.'] }
+              end
+            end
           end
         end
 
@@ -59,13 +165,17 @@ RSpec.describe AwesomeXML::NodeEvaluator do
 end
 
 class AwesomeXML::MockType
-  attr_reader :node
+  attr_reader :string
 
-  def initialize(node, options)
-    @node = node
+  def initialize(string, options)
+    @string = string
   end
 
   def evaluate
-    node&.text
+    string
+  end
+
+  def self.parsing_type?
+    true
   end
 end

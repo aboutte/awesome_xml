@@ -42,7 +42,7 @@ Its arguments are
   - an options hash (optional)
 
 The type can either be a native type given in the form of a symbol (currently supported are `:text`,
-`:integer`, `:float`, `:duration` and `:date_time`), or a custom class. You can also pass in a string containing
+`:integer`, `:float`, `:duration`, `:date_time` and `:void`), or a custom class. You can also pass in a string containing
 a class name in case the class constant is not yet defined at the time you run the `.node` method.
 More about that later.
 
@@ -271,6 +271,48 @@ class MyDocument
 end
 ```
 
+## Node names
+
+There are three options you can use in case you want to parse not the content of an element or attribute,
+but the name of it: `:element_name`, `:attribute_name`, `:self_name`. Those will parse the name of the element or
+the attribute specified by the name of the node or by an `:xpath` option, or the name of the current node itself.
+
+Let's look at an example:
+
+```xml
+<document>
+  <heap1>
+    <item ref='a'/>
+  </heap1>
+  <heap2>
+    <item ref='b'/>
+  </heap2>
+</document>
+```
+
+Now let's assume you want your hash to equal
+```ruby
+{ items: [ { ref: 'a', heap: 'heap1' }, { ref: 'b', heap: 'heap2' } ] }
+```
+
+You can solve this by using `element_name: true`:
+
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  set_context 'document'
+  node :items, 'Item', array: true, xpath: '//item'
+
+  class Item
+    include AwesomeXML
+
+    node :ref, :text, attribute: true
+    node :heap, :text, element_name: true, xpath: '../'
+  end
+end
+```
+
 Awesome, right? You've got a few more notches you can kick it up, though.
 
 ## Passing blocks
@@ -477,7 +519,9 @@ or doesn't even exist. For the former, use `:default_empty`, for the latter, use
 
 ## More node types
 
-Let's talk about duration nodes. As you may remember, `:duration` is of the native types for `.node`.
+### Duration nodes
+
+As you may remember, `:duration` is of the native types for `.node`.
 They return `ActiveSupport::Duration` objects, which interact freely with each other and with `Time` and
 `DateTime` objects.
 The special thing about them is that they take a *mandatory* `:format` option. There, you can specify the
@@ -496,3 +540,35 @@ but when the numbers are single digit, it looks like `'2m1'`. In this case, just
 `parse_length`. Everything up to the following character (or the end of the duration string) will be
 treated as going into the parsed value. The format string that would parse you the correct duration
 would be `'{M}m{S}'`.
+
+### Void nodes
+
+This type is used if you don't actually want to parse anything. For example, if you simply want to count the
+occurrence of a tag. The result of the parsing operation is simply the node(s) itself. Suppose your XML document
+is this:
+
+```xml
+<document>
+  <items>
+    <item>1234</item>
+    <item>4321</item>
+    <item>5678</item>
+  </items>
+</document>
+```
+
+And you want your ruby hash to be
+```ruby
+{ number_of_items: 3 }
+```
+
+This will do it for you:
+
+```ruby
+class MyDocument
+  include AwesomeXML
+
+  set_context 'document/items'
+  node(:number_of_items, :void, element: 'item', array: true) { |nodes| nodes.size }
+end
+```

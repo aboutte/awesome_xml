@@ -186,14 +186,37 @@ RSpec.describe 'README examples' do
     end
   end
 
+  describe 'Node names' do
+    subject { instance.to_hash }
+
+    let(:xml) { "<document><heap1><item ref='a'/></heap1><heap2><item ref='b'/></heap2></document>" }
+    let(:example_class) { MyDocument11 }
+
+    class MyDocument11
+      include AwesomeXML
+
+      set_context 'document'
+      node :items, 'Item', array: true, xpath: '//item'
+
+      class Item
+        include AwesomeXML
+
+        node :ref, :text, attribute: true
+        node :heap, :text, element_name: true, xpath: '..'
+      end
+    end
+
+    it { is_expected.to eq(items: [ { ref: 'a', heap: 'heap1' }, { ref: 'b', heap: 'heap2' } ]) }
+  end
+
   describe 'Passing blocks' do
     subject { instance.to_hash }
 
     context 'first example' do
       let(:xml) { "<document><item index='1'/><item index='2'/><item index='3'/></document>" }
-      let(:example_class) { MyDocument11 }
+      let(:example_class) { MyDocument12 }
 
-      class MyDocument11
+      class MyDocument12
         include AwesomeXML
 
         set_context 'document'
@@ -207,9 +230,9 @@ RSpec.describe 'README examples' do
 
     context 'second example' do
       let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
-      let(:example_class) { MyDocument12 }
+      let(:example_class) { MyDocument13 }
 
-      class MyDocument12
+      class MyDocument13
         include AwesomeXML
 
         set_context 'document/items'
@@ -227,9 +250,9 @@ RSpec.describe 'README examples' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
-    let(:example_class) { MyDocument13 }
+    let(:example_class) { MyDocument14 }
 
-    class MyDocument13
+    class MyDocument14
       include AwesomeXML
 
       set_context 'document/items'
@@ -250,9 +273,9 @@ RSpec.describe 'README examples' do
     let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
 
     context 'first example' do
-      let(:example_class) { MyDocument14 }
+      let(:example_class) { MyDocument15 }
 
-      class MyDocument14
+      class MyDocument15
         include AwesomeXML
 
         set_context 'document/items'
@@ -274,9 +297,9 @@ RSpec.describe 'README examples' do
     end
 
     context 'second example' do
-      let(:example_class) { MyDocument15 }
+      let(:example_class) { MyDocument16 }
 
-      class MyDocument15
+      class MyDocument16
         include AwesomeXML
 
         set_context 'document/items'
@@ -302,9 +325,9 @@ RSpec.describe 'README examples' do
     subject { instance.to_hash }
 
     let(:xml) { "<document><items multiplicator='100'><item value='1'/><item value='2'/><item value='3'/></items></document>" }
-    let(:example_class) { MyDocument16 }
+    let(:example_class) { MyDocument17 }
 
-    class MyDocument16
+    class MyDocument17
       include AwesomeXML
 
       set_context 'document/items'
@@ -317,5 +340,21 @@ RSpec.describe 'README examples' do
     end
 
     it { is_expected.to eq(item_values: [100, 200, 300]) }
+  end
+
+  describe 'Void nodes' do
+    subject { instance.to_hash }
+
+    let(:xml) { "<document><items><item>1234</item><item>4321</item><item>5678</item></items></document>" }
+    let(:example_class) { MyDocument18 }
+
+    class MyDocument18
+      include AwesomeXML
+
+      set_context 'document/items'
+      node(:number_of_items, :void, element: 'item', array: true) { |nodes| nodes.size }
+    end
+
+    it { is_expected.to eq(number_of_items: 3) }
   end
 end

@@ -158,6 +158,19 @@ RSpec.describe AwesomeXML do
       end
     end
 
+    context 'when passing type void' do
+      let(:awesome_class) { ClassWithVoidNode }
+
+      class ClassWithVoidNode
+        include AwesomeXML
+
+        set_context 'some'
+        node :thing, :void
+      end
+
+      it { is_expected.to be_a Nokogiri::XML::Element }
+    end
+
     context 'when passing a class as type' do
       let(:awesome_class) { ClassWithNodeFromClass }
 
@@ -375,6 +388,48 @@ RSpec.describe AwesomeXML do
       end
 
       it { is_expected.to eq '4321' }
+    end
+
+    context 'when passing in :element_name option' do
+      let(:xml) { "<doc><tags><abc/><def/></tags></doc>" }
+      let(:awesome_class) { ClassWithElementName }
+
+      class ClassWithElementName
+        include AwesomeXML
+
+        set_context 'doc'
+        node :thing, :text, element_name: true, array: true, xpath: './tags/*'
+      end
+
+      it { is_expected.to eq ['abc', 'def'] }
+    end
+
+    context 'when passing in :attribute_name option' do
+      let(:xml) { "<doc><thing ab='c' de='f'/></doc>" }
+      let(:awesome_class) { ClassWithAttributeName }
+
+      class ClassWithAttributeName
+        include AwesomeXML
+
+        set_context 'doc'
+        node :thing, :text, attribute_name: true, array: true, xpath: './thing/@*'
+      end
+
+      it { is_expected.to eq ['ab', 'de'] }
+    end
+
+    context 'when passing in :self_name option' do
+      let(:xml) { "<something/>" }
+      let(:awesome_class) { ClassWithSelfName }
+
+      class ClassWithSelfName
+        include AwesomeXML
+
+        set_context 'something'
+        node :thing, :text, self_name: true
+      end
+
+      it { is_expected.to eq 'something' }
     end
 
     context 'when passing default value' do
@@ -611,5 +666,17 @@ RSpec.describe AwesomeXML do
         end
       end
     end
+  end
+
+  describe '.parsing_type?' do
+    subject { awesome_class.parsing_type? }
+
+    let(:awesome_class) { SimpleAwesomeClass }
+
+    class SimpleAwesomeClass
+      include AwesomeXML
+    end
+
+    it { is_expected.to be false }
   end
 end

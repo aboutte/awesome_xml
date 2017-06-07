@@ -1,7 +1,7 @@
 # coding: utf-8
 Gem::Specification.new do |spec|
   spec.name = 'awesome_xml'
-  spec.version = '1.1.0'
+  spec.version = '1.2.0'
   spec.authors = ['Felix Lublasser']
   spec.email = ['felix.lublasser@fromatob.com']
 

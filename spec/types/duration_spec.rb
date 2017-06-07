@@ -3,13 +3,12 @@
 require File.expand_path("../../../lib/awesome_xml.rb", __FILE__)
 
 RSpec.describe AwesomeXML::Duration do
-  let(:duration) { described_class.new(node, options) }
+  let(:duration) { described_class.new(string, options) }
 
   describe '#evaluate' do
     subject { duration.evaluate }
 
-    let(:node) { Nokogiri::XML(xml).at_xpath('/duration') }
-    let(:xml) { '<duration>12.34</duration>' }
+    let(:string) { '12.34' }
 
     context 'when no format option given' do
       let(:options) { {} }
@@ -26,13 +25,13 @@ RSpec.describe AwesomeXML::Duration do
         end
 
         context 'and duration string does not match format' do
-          let(:xml) { '<duration>12:34</duration>' }
+          let(:string) { '12:34' }
 
           specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
         end
 
         context 'and duration string is empty' do
-          let(:xml) { '<duration></duration>' }
+          let(:string) { '' }
 
           context 'and default_empty option is not set' do
             it { is_expected.to eq nil }
@@ -45,8 +44,8 @@ RSpec.describe AwesomeXML::Duration do
           end
         end
 
-        context 'and duration node does not exist' do
-          let(:xml) { '<duratio></duratio>' }
+        context 'and duration string is nil' do
+          let(:string) { nil }
 
           context 'and default option is not set' do
             it { is_expected.to eq nil }
@@ -63,19 +62,19 @@ RSpec.describe AwesomeXML::Duration do
           let(:options) { { format: '.' } }
 
           context 'and the duration string conforms' do
-            let(:xml) { '<duration>.</duration>' }
+            let(:string) { '.' }
 
             it { is_expected.to eq 0.seconds }
           end
 
           context 'and the duration string does not conform' do
-            let(:xml) { '<duration>:</duration>' }
+            let(:string) { ':' }
 
             specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
           end
 
           context 'and the duration string has additional characters' do
-            let(:xml) { '<duration>.12</duration>' }
+            let(:string) { '.12' }
 
             it { is_expected.to eq 0.seconds }
           end
@@ -87,13 +86,13 @@ RSpec.describe AwesomeXML::Duration do
               let(:options) { { format: '{M}' } }
 
               context 'and the duration string conforms' do
-                let(:xml) { '<duration>12</duration>' }
+                let(:string) { '12' }
 
                 it { is_expected.to eq 12.minutes }
               end
 
               context 'and the duration string does not conform' do
-                let(:xml) { '<duration>12.</duration>' }
+                let(:string) { '12.' }
 
                 specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
               end
@@ -103,19 +102,19 @@ RSpec.describe AwesomeXML::Duration do
               let(:options) { { format: '{M}.' } }
 
               context 'and the duration string conforms exactly' do
-                let(:xml) { '<duration>123.</duration>' }
+                let(:string) { '123.' }
 
                 it { is_expected.to eq 123.minutes }
               end
 
               context 'and the duration string is missing the delimiter' do
-                let(:xml) { '<duration>12</duration>' }
+                let(:string) { '12' }
 
                 specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
               end
 
               context 'and the duration string is missing the number' do
-                let(:xml) { '<duration>.</duration>' }
+                let(:string) { '.' }
 
                 it { is_expected.to eq 0.seconds }
               end
@@ -127,19 +126,19 @@ RSpec.describe AwesomeXML::Duration do
               let(:options) { { format: '{M3}' } }
 
               context 'and the duration string conforms exactly' do
-                let(:xml) { '<duration>123</duration>' }
+                let(:string) { '123' }
 
                 it { is_expected.to eq 123.minutes }
               end
 
               context 'and the duration string has fewer characters' do
-                let(:xml) { '<duration>12</duration>' }
+                let(:string) { '12' }
 
                 it { is_expected.to eq 12.minutes }
               end
 
               context 'and the duration string has additional characters' do
-                let(:xml) { '<duration>123.</duration>' }
+                let(:string) { '123.' }
 
                 it { is_expected.to eq 123.minutes }
               end
@@ -149,25 +148,25 @@ RSpec.describe AwesomeXML::Duration do
               let(:options) { { format: '{M3}:' } }
 
               context 'and the duration string conforms exactly' do
-                let(:xml) { '<duration>123:</duration>' }
+                let(:string) { '123:' }
 
                 it { is_expected.to eq 123.minutes }
               end
 
               context 'and the duration string has fewer characters' do
-                let(:xml) { '<duration>12:</duration>' }
+                let(:string) { '12:' }
 
                 specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
               end
 
               context 'and the duration string has additional characters' do
-                let(:xml) { '<duration>1234:</duration>' }
+                let(:string) { '1234:' }
 
                 specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
               end
 
               context 'and the duration string is missing the delimiter' do
-                let(:xml) { '<duration>123</duration>' }
+                let(:string) { '123' }
 
                 specify { expect { subject }.to raise_error(described_class::ChunkParser::FormatMismatch) }
               end
@@ -188,6 +187,12 @@ RSpec.describe AwesomeXML::Duration do
         it { is_expected.to eq 0.seconds }
       end
     end
+  end
+
+  describe '.parsing_type?' do
+    subject { described_class.parsing_type? }
+
+    it { is_expected.to be true }
   end
 end
 

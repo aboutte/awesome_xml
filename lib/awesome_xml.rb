@@ -9,6 +9,7 @@ FILES = %w(
   types/float
   types/duration
   types/date_time
+  types/void
   type
   class_methods
   duration/chunk_parser

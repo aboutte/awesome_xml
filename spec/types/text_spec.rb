@@ -6,18 +6,17 @@ RSpec.describe AwesomeXML::Text do
   describe '#evaluate' do
     subject { text.evaluate }
 
-    let(:text) { described_class.new(node, options) }
-    let(:node) { Nokogiri::XML(xml).at_xpath('/text') }
+    let(:text) { described_class.new(string, options) }
     let(:options) { {} }
 
     context 'when text is present' do
-      let(:xml) { '<text>TExT</text>' }
+      let(:string) { 'TExT' }
 
       it { is_expected.to eq 'TExT' }
     end
 
     context 'when text is empty' do
-      let(:xml) { '<text/>' }
+      let(:string) { '' }
 
       context 'and default_empty option is not set' do
         it { is_expected.to eq '' }
@@ -30,8 +29,8 @@ RSpec.describe AwesomeXML::Text do
       end
     end
 
-    context 'when node does not exist' do
-      let(:xml) { '<texxt/>' }
+    context 'when text is nil' do
+      let(:string) { nil }
 
       context 'and default option is not set' do
         it { is_expected.to eq nil }
@@ -43,5 +42,11 @@ RSpec.describe AwesomeXML::Text do
         it { is_expected.to eq '' }
       end
     end
+  end
+
+  describe '.parsing_type?' do
+    subject { described_class.parsing_type? }
+
+    it { is_expected.to be true }
   end
 end

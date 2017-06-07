@@ -70,6 +70,10 @@ module AwesomeXML
       @public_nodes ||= []
     end
 
+    def parsing_type?
+      false
+    end
+
   private
 
     def register(node_name, privateness)

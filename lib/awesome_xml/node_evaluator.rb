@@ -21,13 +21,18 @@ module AwesomeXML
     # type passed in in the form of a class that handles the conversion.
     def call
       if options[:array]
-        all_nodes.map { |node| type_class.new(node, options).evaluate }
+        all_nodes.map { |node| type_class.new(content(node), options).evaluate }
       else
-        type_class.new(first_node, options).evaluate
+        type_class.new(content(first_node), options).evaluate
       end
     end
 
   private
+
+    def content(node)
+      return node unless type_class.parsing_type?
+      (options[:element_name] || options[:attribute_name] || options[:self_name]) ? node&.name : node&.text
+    end
 
     def all_nodes
       xml_in_context&.xpath(xpath)

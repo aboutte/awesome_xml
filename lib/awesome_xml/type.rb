@@ -9,7 +9,8 @@ module AwesomeXML
       integer: AwesomeXML::Integer,
       float: AwesomeXML::Float,
       duration: AwesomeXML::Duration,
-      date_time: AwesomeXML::DateTime
+      date_time: AwesomeXML::DateTime,
+      void: AwesomeXML::Void
     }.freeze
 
     # Takes a type (Symbol, String or Class) passed in from a `.node` method call and the
