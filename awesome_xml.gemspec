@@ -19,11 +19,11 @@ Gem::Specification.new do |spec|
                    'README.md']
   spec.homepage = 'https://github.com/fromAtoB/awesome_xml'
 
-  spec.add_development_dependency 'bundler', '~> 1.12'
+  spec.add_development_dependency 'bundler', '~> 2.0'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'rubocop', '~> 0.41'
 
-  spec.add_runtime_dependency 'activesupport', '~> 4.2'
+  spec.add_runtime_dependency 'activesupport', '~> 6.0'
   spec.add_runtime_dependency 'nokogiri', '~> 1.3'
 end
